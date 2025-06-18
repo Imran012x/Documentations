@@ -1825,3 +1825,973 @@ Distribution Layer (Layer 3 Switching):
 - VLAN routing
 
 Access Layer (Layer
+
+# Real-World Network Scenarios: Complete Implementation Guide
+
+## Scenario 1: Small Business Office Network (50 Users)
+
+### Business Context
+**Company**: Marketing Agency with 45 employees + 5 contractors
+**Location**: Single-floor office space (5,000 sq ft)
+**Requirements**: High-speed internet, file sharing, video conferencing, guest access
+**Budget**: $15,000 for complete network infrastructure
+
+### Network Design
+```
+Internet (100 Mbps) → Firewall → Core Switch → Department Switches
+                                    ↓
+                              Wireless Controller → APs (4 units)
+```
+
+### Equipment List & Configuration
+
+#### Edge Firewall (SonicWall TZ470)
+```bash
+# Basic Configuration
+configure
+network interface X1 dhcp
+network interface X2 192.168.1.1/24 "LAN Zone"
+network interface X3 192.168.100.1/24 "Guest Zone"
+
+# Security Policies
+access-rule ipv4 from LAN to WAN action allow
+access-rule ipv4 from Guest to WAN action allow
+access-rule ipv4 from Guest to LAN action deny
+
+# Content Filtering
+content-filter enable
+content-filter category "Social Media" action block schedule "Business Hours"
+content-filter category "Malware" action block
+```
+
+#### Core Switch (Cisco Catalyst 2960X-24TS)
+```bash
+# Basic Configuration
+hostname CoreSwitch
+enable secret Cisco123!
+service password-encryption
+
+# VLANs
+vlan 10
+ name Corporate
+vlan 20
+ name Guest
+vlan 30
+ name Printers
+vlan 100
+ name Management
+
+# Trunk to APs
+interface GigabitEthernet0/1
+ description "Uplink to Wireless Controller"
+ switchport mode trunk
+ switchport trunk allowed vlan 10,20,30,100
+ spanning-tree portfast trunk
+
+# Access Ports
+interface range FastEthernet0/2-20
+ switchport mode access
+ switchport access vlan 10
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+
+# Printer Ports
+interface range FastEthernet0/21-24
+ switchport mode access
+ switchport access vlan 30
+```
+
+#### Wireless Controller (Cisco 3504)
+```bash
+# Basic Setup
+config system name "Marketing-WLC"
+config interface address management 192.168.100.10 255.255.255.0 192.168.100.1
+
+# WLANs
+config wlan create 1 "Corporate-WiFi" "Corporate-WiFi"
+config wlan security wpa enable 1
+config wlan security wpa akm psk enable 1
+config wlan security wpa akm psk set-key ascii "Corp@WiFi2024!" 1
+config wlan interface 1 management
+
+config wlan create 2 "Guest-WiFi" "Guest-WiFi"
+config wlan security web-auth enable 2
+config wlan session-timeout 2 3600
+```
+
+### Daily Operations Issues & Solutions
+
+#### Issue 1: Slow Internet During Video Calls
+**Problem**: Multiple Teams meetings causing bandwidth congestion
+**Solution**: QoS Implementation
+```bash
+# QoS Configuration on Router
+class-map match-all VIDEO-CONF
+ match protocol attribute category video-conferencing
+policy-map QOS-POLICY
+ class VIDEO-CONF
+  bandwidth percent 40
+  priority
+interface GigabitEthernet0/1
+ service-policy output QOS-POLICY
+```
+
+#### Issue 2: Guest Network Security Breach
+**Problem**: Guest user accessed internal file server
+**Solution**: Enhanced Network Segmentation
+```bash
+# Additional Firewall Rules
+access-rule ipv4 from Guest to LAN destination 192.168.1.0/24 action deny
+access-rule ipv4 from Guest to WAN destination any action allow service http
+access-rule ipv4 from Guest to WAN destination any action allow service https
+access-rule ipv4 from Guest to WAN destination any action allow service dns
+```
+
+---
+
+## Scenario 2: Medium Enterprise Network (500 Users, 3 Locations)
+
+### Business Context
+**Company**: Manufacturing company with HQ + 2 branch offices
+**Locations**: 
+- HQ: 300 users, Chicago
+- Branch 1: 150 users, Atlanta  
+- Branch 2: 50 users, Denver
+**Requirements**: VPN connectivity, ERP system, industrial IoT, video surveillance
+
+### Network Architecture
+```
+HQ (Chicago) ←→ MPLS Cloud ←→ Branch 1 (Atlanta)
+     ↓                           ↓
+Internet Backup         Internet Backup
+     ↓                           ↓
+Branch 2 (Denver) ←←←←←←←←←←←←←←←←←
+```
+
+### HQ Configuration (Chicago)
+
+#### Core Router (Cisco ISR 4431)
+```bash
+hostname HQ-Router-CHI
+enable secret SecurePass123!
+
+# WAN Interfaces
+interface GigabitEthernet0/0/0
+ description "MPLS Connection to Provider"
+ ip address 10.1.1.2 255.255.255.252
+ no shutdown
+
+interface GigabitEthernet0/0/1
+ description "Internet Backup"
+ ip address dhcp
+ no shutdown
+
+# LAN Interface
+interface GigabitEthernet0/1/0
+ description "LAN Connection"
+ ip address 192.168.10.1 255.255.255.0
+ no shutdown
+
+# OSPF Configuration
+router ospf 1
+ router-id 1.1.1.1
+ network 192.168.10.0 0.0.0.255 area 0
+ network 10.1.1.0 0.0.0.3 area 0
+ passive-interface GigabitEthernet0/1/0
+
+# BGP for Internet Backup
+router bgp 65001
+ neighbor 203.0.113.1 remote-as 65000
+ network 192.168.10.0 mask 255.255.255.0
+
+# VPN Configuration
+crypto isakmp policy 10
+ authentication pre-share
+ encryption aes 256
+ hash sha256
+ group 14
+
+crypto isakmp key VPN_KEY_2024! address 10.2.2.2
+crypto isakmp key VPN_KEY_2024! address 10.3.3.2
+
+crypto ipsec transform-set TRANSFORM_SET esp-aes 256 esp-sha256-hmac
+crypto map VPN_MAP 10 ipsec-isakmp
+ set peer 10.2.2.2
+ set transform-set TRANSFORM_SET
+ match address VPN_TRAFFIC_ATL
+
+ip access-list extended VPN_TRAFFIC_ATL
+ permit ip 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255
+```
+
+#### Core Switch Stack (Cisco Catalyst 9300)
+```bash
+# Stack Configuration
+switch 1 provision ws-c9300-24t
+switch 2 provision ws-c9300-24t
+switch 1 priority 15
+switch 2 priority 14
+
+# VLANs
+vlan 10
+ name Management
+vlan 20
+ name Employees
+vlan 30
+ name Manufacturing
+vlan 40
+ name IoT-Devices
+vlan 50
+ name Surveillance
+vlan 60
+ name Servers
+vlan 99
+ name Guest
+
+# SVI Configuration
+interface Vlan20
+ description "Employee Network"
+ ip address 192.168.20.1 255.255.255.0
+ ip helper-address 192.168.60.10
+
+interface Vlan30
+ description "Manufacturing Floor"
+ ip address 192.168.30.1 255.255.255.0
+ ip helper-address 192.168.60.10
+
+# Access Control Lists
+ip access-list extended MANUFACTURING_ACL
+ permit tcp 192.168.30.0 0.0.0.255 192.168.60.0 0.0.0.255 eq 1433
+ permit udp 192.168.30.0 0.0.0.255 192.168.60.10 0.0.0.0 eq 67
+ deny ip 192.168.30.0 0.0.0.255 any
+ permit ip any any
+```
+
+### Branch Office Configuration (Atlanta)
+
+#### Branch Router (Cisco ISR 4321)
+```bash
+hostname Branch-Router-ATL
+enable secret SecurePass123!
+
+# MPLS Interface
+interface GigabitEthernet0/0/0
+ description "MPLS to HQ"
+ ip address 10.2.2.2 255.255.255.252
+ no shutdown
+
+# LAN Interface
+interface GigabitEthernet0/0/1
+ description "Branch LAN"
+ ip address 192.168.20.1 255.255.255.0
+ no shutdown
+
+# OSPF Configuration
+router ospf 1
+ router-id 2.2.2.2
+ network 192.168.20.0 0.0.0.255 area 1
+ network 10.2.2.0 0.0.0.3 area 0
+ area 1 stub
+
+# QoS for VoIP
+class-map match-all VOICE
+ match dscp ef
+policy-map WAN-QOS
+ class VOICE
+  priority percent 30
+ class class-default
+  bandwidth remaining percent 70
+interface GigabitEthernet0/0/0
+ service-policy output WAN-QOS
+```
+
+### Real-World Problems & Solutions
+
+#### Problem 1: ERP System Performance Issues
+**Symptom**: SAP response times > 5 seconds from branch offices
+**Root Cause**: Database queries over WAN links
+**Solution**: Application optimization and caching
+
+```bash
+# WAN Optimization Configuration
+policy-map type waas WAAS-POLICY
+ class type waas WAAS-CLASS
+  optimize cifs
+  optimize http
+  optimize mapi
+  optimize nfs
+  optimize oracle
+  optimize tcp
+
+interface GigabitEthernet0/0/0
+ waas enable
+ service-policy type waas output WAAS-POLICY
+```
+
+#### Problem 2: Manufacturing IoT Device Connectivity
+**Symptom**: Random disconnections of production line sensors
+**Root Cause**: WiFi interference and inadequate power management
+**Solution**: Dedicated IoT network with industrial APs
+
+```bash
+# IoT WLAN Configuration
+config wlan create 5 "IoT-Manufacturing" "IoT-Manufacturing"
+config wlan security wpa enable 5
+config wlan security wpa akm psk enable 5
+config wlan security wpa akm psk set-key ascii "IoT@Secure2024!" 5
+config wlan interface 5 iot-vlan
+config wlan power-save disable 5
+config wlan dtim 5 1
+```
+
+---
+
+## Scenario 3: Large Enterprise Campus (5,000 Users)
+
+### Business Context
+**Company**: University with multiple buildings
+**Users**: 4,000 students + 1,000 faculty/staff
+**Buildings**: 12 academic buildings, 8 dormitories, 1 data center
+**Requirements**: High-density WiFi, research networks, guest access, video streaming
+
+### Campus Network Design
+```
+Data Center Core
+       ↓
+Distribution Layer (Building Aggregation)
+       ↓
+Access Layer (Floor Switches)
+       ↓
+End Devices (Wired/Wireless)
+```
+
+### Core Data Center Configuration
+
+#### Core Switch (Cisco Nexus 9000)
+```bash
+# Basic Configuration
+hostname Campus-Core-01
+feature ospf
+feature bgp
+feature vpc
+feature lacp
+
+# VPC Configuration
+vpc domain 100
+  peer-switch
+  peer-gateway
+  peer-keepalive destination 192.168.1.2 source 192.168.1.1
+  auto-recovery
+
+# VLANs
+vlan 100
+  name Faculty-Staff
+vlan 200
+  name Students-Wired
+vlan 300
+  name Students-Wireless
+vlan 400
+  name Research-Network
+vlan 500
+  name Guest-Network
+vlan 600
+  name Building-Management
+vlan 700
+  name Servers
+
+# SVI Configuration
+interface Vlan100
+  description Faculty-Staff Network
+  ip address 10.100.1.1/24
+  ip ospf area 0.0.0.0
+  hsrp 100
+    ip 10.100.1.254
+    priority 110
+    preempt
+
+# Distribution Uplinks
+interface port-channel1
+  description "Uplink to Building-A Distribution"
+  switchport mode trunk
+  switchport trunk allowed vlan 100,200,300,400,500,600
+  vpc 1
+```
+
+#### Building Distribution Switch (Cisco Catalyst 9500)
+```bash
+hostname Building-A-Dist-01
+enable secret CampusSecure2024!
+
+# Stack Configuration
+switch 1 provision c9500-32qc
+switch 2 provision c9500-32qc
+switch 1 priority 15
+switch 2 priority 14
+
+# Uplink to Core
+interface range TenGigabitEthernet1/0/1-2
+ description "Uplink to Campus Core"
+ channel-group 1 mode active
+ no shutdown
+
+interface port-channel1
+ description "Uplink to Campus Core"
+ switchport mode trunk
+ switchport trunk allowed vlan 100,200,300,400,500,600
+
+# Access Layer Downlinks
+interface range GigabitEthernet1/0/1-24
+ description "Downlink to Floor Switches"
+ switchport mode trunk
+ switchport trunk allowed vlan 100,200,300,400,500,600
+ spanning-tree portfast trunk
+```
+
+### High-Density Wireless Configuration
+
+#### Wireless Controller (Cisco 9800-CL)
+```bash
+# High-Density WLAN Configuration
+wlan Campus-Students 1 Campus-Students
+ client vlan Students-Wireless
+ no shutdown
+ security wpa psk ascii 0 StudentAccess2024!
+ no security wpa akm dot1x
+ security wpa akm psk
+
+# High-Density RF Profile
+rf-profile Campus-HD
+ description "High Density Profile for Lecture Halls"
+ band-select cycle-count 2
+ band-select cycle-threshold 200
+ band-select expire 10
+ band-select client-rssi -70
+ load-balancing window 5
+ multicast-direct enable
+ no dot11 24ghz shutdown
+ no dot11 5ghz shutdown
+ dot11 24ghz channel 1 6 11
+ dot11 5ghz channel 36 44 149 157 165
+ dot11 24ghz txpower 8
+ dot11 5ghz txpower 11
+
+# AP Group Configuration
+ap-group Lecture-Halls
+ description "High-density lecture hall deployment"
+ rf-profile Campus-HD
+ wlan 1
+```
+
+### Network Access Control (NAC) Implementation
+
+#### ISE Configuration for Device Onboarding
+```bash
+# ISE Policy Configuration
+configure terminal
+radius-server host 192.168.1.50 auth-port 1812 acct-port 1813
+radius-server key ISE-SharedKey-2024!
+
+# Dynamic Authorization
+aaa server radius dynamic-author
+ client 192.168.1.50 server-key ISE-SharedKey-2024!
+ port 3799
+
+# 802.1X Configuration
+dot1x system-auth-control
+dot1x critical eapol
+
+# Interface Configuration for 802.1X
+interface range GigabitEthernet1/0/1-48
+ description "Student Access Ports"
+ switchport mode access
+ switchport access vlan 999
+ authentication event fail action next-method
+ authentication event server dead action authorize vlan 999
+ authentication event server alive action reinitialize
+ authentication host-mode multi-auth
+ authentication open
+ authentication order dot1x mab
+ authentication priority dot1x mab
+ authentication port-control auto
+ authentication periodic
+ authentication timer reauthenticate server
+ dot1x pae authenticator
+ dot1x timeout tx-period 7
+ mab
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+```
+
+###10. Real-World Challenges & Solutions
+
+#### Challenge 1: Lecture Hall WiFi Congestion
+**Problem**: 300 students in auditorium, WiFi unusable during class
+**Symptoms**: 
+- Connection timeouts
+- Slow web browsing
+- Video streaming failures
+
+**Solution**: High-Density WiFi Design**
+```bash
+# High-Density AP Deployment
+# 6 APs in lecture hall with coordinated channel plan
+AP-LH-01: Channel 36 (5GHz), Power 11dBm
+AP-LH-02: Channel 44 (5GHz), Power 11dBm  
+AP-LH-03: Channel 149 (5GHz), Power 11dBm
+AP-LH-04: Channel 157 (5GHz), Power 11dBm
+AP-LH-05: Channel 165 (5GHz), Power 11dBm
+AP-LH-06: Channel 36 (5GHz), Power 11dBm
+
+# Client Load Balancing
+config advanced 802.11a l2roam rf-param max-client 25
+config advanced 802.11a l2roam rf-param min-client-level -70
+config advanced 802.11a l2roam rf-param roam-hyst-level 6
+```
+
+#### Challenge 2: Research Network Isolation
+**Problem**: Sensitive research data mixed with general campus traffic
+**Solution**: Microsegmentation with TrustSec**
+
+```bash
+# TrustSec Configuration
+cts authorization list ISE-AUTHZ-LIST
+cts role-based enforcement
+cts role-based monitor all
+
+# Security Group Tags
+interface GigabitEthernet1/0/10
+ description "Research Lab Connection"
+ cts manual
+  policy static sgt 10 trusted
+  propagate sgt
+```
+
+#### Challenge 3: Dormitory Bandwidth Management
+**Problem**: P2P traffic consuming all available bandwidth
+**Solution**: Per-User Bandwidth Limiting**
+
+```bash
+# Per-User Rate Limiting
+policy-map type control subscriber DORM-POLICY
+ event session-start match-all
+  10 class type control subscriber DORM-CLASS do-until-failure
+   10 activate service-policy BANDWIDTH-LIMIT
+
+policy-map BANDWIDTH-LIMIT
+ class class-default
+  police rate 50000000 bps burst 1562500 bytes
+  conform-action transmit
+  exceed-action drop
+```
+
+---
+
+## Scenario 4: Cloud-First Startup (100 Remote Workers)
+
+### Business Context
+**Company**: SaaS startup, fully remote workforce
+**Users**: 80 developers + 20 business staff
+**Locations**: Home offices worldwide
+**Requirements**: Secure remote access, cloud connectivity, video conferencing
+
+### SD-WAN Implementation
+
+#### Branch Office in a Box (Cisco vEdge)
+```bash
+# vEdge Configuration Template
+system
+ host-name Home-Office-{{site-id}}
+ site-id {{site-id}}
+ admin-tech-on-failure
+ no route-consistency-check
+ organization-name "StartupCorp"
+ vbond {{vbond-ip}}
+
+# WAN Interfaces
+vpn 0
+ interface ge0/0
+  ip address {{wan-ip}}/{{wan-mask}}
+  ipv6 dhcp-client
+  tunnel-interface
+   encapsulation ipsec
+   color biz-internet
+   allow-service dhcp
+   allow-service dns
+   allow-service icmp
+   allow-service sshd
+   allow-service netconf
+   allow-service ntp
+   allow-service ospf
+   allow-service stun
+  no shutdown
+
+# LAN Interface
+vpn 1
+ interface ge0/1
+  ip address 192.168.1.1/24
+  no shutdown
+ ip route 0.0.0.0/0 192.168.1.1
+
+# Application-Aware Routing
+policy
+ app-route-policy HOME-OFFICE-POLICY
+  vpn-list HOME-OFFICE-VPN
+   sequence 10
+    match
+     app-list VIDEO-APPS
+    action
+     sla-class VIDEO-SLA
+     preferred-color biz-internet
+```
+
+### Zero Trust Network Access (ZTNA)
+
+#### Zscaler Configuration
+```bash
+# Location Configuration
+{
+  "name": "Home-Office-{{location}}",
+  "country": "{{country}}",
+  "state": "{{state}}",
+  "staticLocationGroups": [
+    {
+      "name": "Remote-Workers"
+    }
+  ],
+  "surrogateIP": true,
+  "xffForwardEnabled": true,
+  "offsiteGAT": true,
+  "ipsControl": true,
+  "aupEnabled": true,
+  "cautionEnabled": true,
+  "digestAuthentication": true,
+  "kerberosAuthentication": true
+}
+
+# URL Filtering Policy
+{
+  "name": "Remote-Worker-Policy",
+  "order": 1,
+  "protocols": ["ANY_RULE"],
+  "locations": [
+    {
+      "name": "Remote-Workers"
+    }
+  ],
+  "groups": [
+    {
+      "name": "All-Employees"
+    }
+  ],
+  "urlCategories": [
+    "SOCIAL_NETWORKING",
+    "ENTERTAINMENT",
+    "GAMES"
+  ],
+  "action": "BLOCK",
+  "state": "ENABLED"
+}
+```
+
+### Real-World Remote Work Challenges
+
+#### Challenge 1: Inconsistent Video Call Quality
+**Problem**: Developers experiencing poor video quality during standups
+**Root Cause**: Home internet QoS limitations
+**Solution**: SD-WAN with Application Optimization**
+
+```bash
+# Application-Aware Routing Policy
+policy
+ sla-class VIDEO-SLA
+  jitter 50
+  latency 200
+  loss 1
+  
+ lists
+  app-list VIDEO-APPS
+   app zoom
+   app webex
+   app teams
+   app googlemeet
+
+ app-route-policy OPTIMIZE-VIDEO
+  vpn-list BRANCH-VPNS
+   sequence 10
+    match
+     app-list VIDEO-APPS
+    action
+     sla-class VIDEO-SLA
+     preferred-color biz-internet
+     strict
+```
+
+#### Challenge 2: Security Breach via Home Network
+**Problem**: Malware infection spread from personal device to corporate resources
+**Solution**: Network Segmentation at Home Office**
+
+```bash
+# Corporate Network Isolation
+vpn 1
+ interface ge0/1.100
+  description "Corporate Devices"
+  encapsulation dot1Q 100
+  ip address 192.168.100.1/24
+  no shutdown
+  
+ interface ge0/1.200
+  description "Personal Devices"
+  encapsulation dot1Q 200
+  ip address 192.168.200.1/24
+  no shutdown
+
+# Firewall Rules
+policy
+ access-list ISOLATE-PERSONAL
+  sequence 10
+   match
+    source-data-prefix-list PERSONAL-NETWORK
+    destination-data-prefix-list CORPORATE-NETWORK
+   action drop
+```
+
+---
+
+## Scenario 5: Healthcare Network (Hospital - 2,000 Users)
+
+### Business Context
+**Organization**: 500-bed hospital
+**Users**: 1,500 medical staff + 500 administrative
+**Requirements**: HIPAA compliance, medical device connectivity, redundancy, real-time monitoring
+**Critical Systems**: Electronic Health Records (EHR), Medical imaging (PACS), Patient monitoring
+
+### Network Segmentation for HIPAA Compliance
+
+#### Core Infrastructure
+```bash
+# Medical VLANs
+vlan 10
+ name Medical-Devices
+vlan 20
+ name EHR-Systems
+vlan 30
+ name PACS-Imaging
+vlan 40
+ name Patient-Monitoring
+vlan 50
+ name Guest-Patient-WiFi
+vlan 60
+ name Administrative
+vlan 70
+ name Voice-Communications
+vlan 99
+ name Quarantine
+
+# Critical System High Availability
+interface port-channel1
+ description "EHR Server Farm Connection"
+ switchport mode trunk
+ switchport trunk allowed vlan 20
+ spanning-tree guard root
+ storm-control broadcast level 1.00
+ storm-control multicast level 1.00
+```
+
+#### Medical Device Network Configuration
+```bash
+# Medical Device Access Control
+interface range GigabitEthernet1/0/1-24
+ description "Medical Device Ports - ICU"
+ switchport mode access
+ switchport access vlan 10
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky
+ switchport port-security violation restrict
+ no cdp enable
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+ storm-control broadcast level 0.50
+ storm-control multicast level 0.50
+
+# Medical Device Firewall Rules
+ip access-list extended MEDICAL-DEVICE-ACL
+ remark "Allow medical devices to EHR systems only"
+ permit tcp 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255 eq 443
+ permit tcp 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255 eq 80
+ permit udp 192.168.10.0 0.0.0.255 192.168.60.10 0.0.0.0 eq 53
+ permit icmp 192.168.10.0 0.0.0.255 192.168.20.0 0.0.0.255 echo
+ deny ip 192.168.10.0 0.0.0.255 any log
+ permit ip any any
+```
+
+### Wireless Configuration for Healthcare
+
+#### Hospital-Grade WiFi
+```bash
+# Medical Staff WLAN
+config wlan create 1 "MedStaff-Secure" "MedStaff-Secure"
+config wlan security wpa enable 1
+config wlan security wpa akm 802.1x enable 1
+config wlan security wpa akm psk disable 1
+config wlan radius auth add 1 192.168.100.10 1812 ascii "HospitalRADIUS2024!"
+config wlan interface 1 medical-staff
+
+# Medical Device WLAN (PSK for compatibility)
+config wlan create 2 "MedDevice-Network" "MedDevice-Network"
+config wlan security wpa enable 2
+config wlan security wpa akm psk enable 2
+config wlan security wpa akm psk set-key ascii "MedDevice@2024!" 2
+config wlan interface 2 medical-devices
+config wlan power-save disable 2
+config wlan dtim 2 1
+
+# Patient/Visitor WiFi with Captive Portal
+config wlan create 3 "Patient-WiFi" "Patient-WiFi"
+config wlan security web-auth enable 3
+config wlan security web-auth server-precedence 3 local radius ldap
+config wlan session-timeout 3 14400
+config wlan interface 3 guest-network
+```
+
+### Real-World Healthcare Network Challenges
+
+#### Challenge 1: Legacy Medical Equipment Connectivity
+**Problem**: 15-year-old MRI machine only supports WEP encryption
+**Compliance Issue**: HIPAA requires strong encryption
+**Solution**: Network Isolation with Encrypted Tunnels**
+
+```bash
+# Legacy Device Isolation
+interface GigabitEthernet1/0/25
+ description "Legacy MRI Machine - Isolated"
+ switchport mode access
+ switchport access vlan 99
+ switchport port-security
+ switchport port-security maximum 1
+ switchport port-security mac-address sticky 001a.2b3c.4d5e
+ switchport port-security violation shutdown
+
+# Encrypted Tunnel for Legacy Device
+crypto map LEGACY-DEVICE-MAP 10 ipsec-isakmp
+ set peer 192.168.20.5
+ set transform-set LEGACY-TRANSFORM
+ match address LEGACY-TRAFFIC
+
+ip access-list extended LEGACY-TRAFFIC
+ permit ip host 192.168.99.10 192.168.20.0 0.0.0.255
+```
+
+#### Challenge 2: Critical Patient Monitor Network Outage
+**Problem**: Network switch failure caused patient monitors to lose connectivity
+**Impact**: 20 ICU patients lost real-time monitoring for 3 minutes
+**Solution**: Redundant Network Design with Sub-Second Failover**
+
+```bash
+# Rapid Spanning Tree for Sub-Second Convergence
+spanning-tree mode rapid-pvst
+spanning-tree vlan 40 priority 8192
+spanning-tree portfast default
+spanning-tree portfast bpduguard default
+
+# EtherChannel for Link Redundancy
+interface range GigabitEthernet1/0/47-48
+ description "Redundant Uplink to Patient Monitor Core"
+ channel-group 1 mode active
+ no shutdown
+
+interface port-channel1
+ description "Patient Monitor Core Connection"
+ switchport mode trunk
+ switchport trunk allowed vlan 40
+ spanning-tree guard root
+```
+
+#### Challenge 3: HIPAA Audit Preparation
+**Problem**: Need to demonstrate network security compliance
+**Solution**: Comprehensive Logging and Monitoring**
+
+```bash
+# Enhanced Logging Configuration
+logging buffered 32768 informational
+logging trap informational
+logging source-interface Loopback0
+logging host 192.168.100.50
+
+# SNMP for Network Monitoring
+snmp-server community HospitalRO RO SNMP-ACL
+snmp-server community HospitalRW RW SNMP-ACL
+snmp-server host 192.168.100.51 version 2c HospitalRO
+snmp-server enable traps config
+snmp-server enable traps interface
+snmp-server enable traps port-security
+
+ip access-list standard SNMP-ACL
+ permit 192.168.100.0 0.0.0.255
+ deny any log
+
+# Flow Monitoring for Compliance
+flow monitor HIPAA-MONITOR
+ record netflow ipv4 original-input
+ exporter HIPAA-EXPORT
+
+flow exporter HIPAA-EXPORT
+ destination 192.168.100.52
+ source Loopback0
+ transport udp 9996
+ version 9
+
+interface range GigabitEthernet1/0/1-48
+ ip flow monitor HIPAA-MONITOR input
+ ip flow monitor HIPAA-MONITOR output
+```
+
+---
+
+## Scenario 6: Retail Chain Network (50 Stores)
+
+### Business Context
+**Company**: Retail chain with 50 locations
+**Users**: 10-15 employees per store + POS systems + customers
+**Requirements**: PCI DSS compliance, centralized management, guest WiFi, video surveillance
+**Systems**: Point-of-Sale, inventory management, digital signage
+
+### Centralized SD-WAN Management
+
+#### Hub Site Configuration (Corporate HQ)
+```bash
+# vSmart Controller Configuration
+system
+ host-name vSmart-Controller
+ site-id 1000
+ admin-tech-on-failure
+ organization-name "RetailChain"
+ vbond 203.0.113.100
+
+# Centralized Policy for All Stores
+policy
+ data-policy RETAIL-POLICY
+  vpn-list STORE-NETWORKS
+   sequence 10
+    match
+     source-data-prefix-list POS-SYSTEMS
+     destination-data-prefix-list PAYMENT-GATEWAY
+    action
+     sla-class CRITICAL-SLA
+   sequence 20
+    match
+     source-data-prefix-list GUEST-NETWORK
+     destination-data-prefix-list INTERNAL-SYSTEMS
+    action
+     drop
+
+ lists
+  data-prefix-list POS-SYSTEMS
+   ip-prefix 192.168.10.0/24
+  data-prefix-list PAYMENT-GATEWAY
+   ip-prefix 203.0.113.0/24
+  data-prefix-list GUEST-NETWORK
+   ip-prefix 192.168.200.0/24
+  data-prefix-list INTERNAL-SYSTEMS
+   ip-prefix 192.168.0.0/16
+```
