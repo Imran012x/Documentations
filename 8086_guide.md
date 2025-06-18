@@ -1637,15 +1637,4 @@ DISPLAY_NUMBER ENDP
 
 END START
 ```
-
-### Example 3: String Manipulation - Palindrome Checker
-
-```assembly
-; Palindrome Checker Program
-.MODEL SMALL
-.STACK 100h
-
-.DATA
-    INPUT_MSG DB 'Enter a string (max 50 chars): 
-    PALINDROME_MSG DB 13,10,'The string is a palindrome.
     
