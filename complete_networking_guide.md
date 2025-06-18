@@ -1615,25 +1615,782 @@ Computer networking is the practice of connecting computing devices to share res
 
 ---
 
-## 17. 🌐 Network Virtualization
+
+## 17. 🖥️ Network Virtualization
 
 ### Virtualization Fundamentals
 
-#### Traditional Network Limitations
-- **Physical Constraints**: Limited by hardware topology
-- **Static Configuration**: Difficult to reconfigure
-- **Resource Utilization**: Underutilized network resources
-- **Scalability Issues**: Physical expansion requirements
+#### What is Network Virtualization?
+Network virtualization abstracts network resources from underlying physical hardware, creating multiple virtual networks that can operate independently on the same physical infrastructure.
 
-#### Network Virtualization Benefits
-- **Resource Efficiency**: Better utilization of physical infrastructure
-- **Flexibility**: Dynamic network configuration
-- **Multi-tenancy**: Isolated virtual networks
-- **Rapid Provisioning**: Quick deployment of network services
+#### Benefits of Network Virtualization
+- **Resource Optimization**: Better utilization of physical hardware
+- **Isolation**: Separate virtual networks for different applications/tenants
+- **Flexibility**: Rapid deployment and modification of network services
+- **Cost Reduction**: Reduced hardware requirements
+- **Scalability**: Easy scaling of network resources
+- **Multi-tenancy**: Multiple organizations sharing infrastructure
 
-### Virtual LAN (VLAN) Technologies
+### Virtual Network Components
 
-#### Traditional VLANs
-- **802.1Q**: Standard VLAN tagging
-- **VLAN ID**: 12-bit identifier (4094 VLANs)
--
+#### Virtual Switches (vSwitches)
+- **VMware vSwitch**: ESXi hypervisor integrated switching
+- **Open vSwitch (OVS)**: Open-source, programmable switch
+- **Cisco Nexus 1000V**: Distributed virtual switch
+- **Microsoft Hyper-V Virtual Switch**: Windows virtualization platform
+
+**Features**:
+- **Port Groups**: Logical grouping of switch ports
+- **VLAN Support**: Virtual LAN segmentation
+- **Traffic Shaping**: Bandwidth control and QoS
+- **Security Policies**: Access control and filtering
+- **Link Aggregation**: Multiple uplinks for redundancy
+
+#### Virtual Routers
+- **Cisco CSR 1000V**: Cloud Services Router
+- **Juniper vSRX**: Virtual firewall and router
+- **VyOS**: Open-source router and firewall platform
+- **pfSense**: FreeBSD-based firewall/router
+
+**Capabilities**:
+- **Routing Protocols**: OSPF, BGP, EIGRP support
+- **VPN Services**: IPSec, SSL VPN
+- **NAT/PAT**: Address translation
+- **Firewall Rules**: Packet filtering and security
+- **Load Balancing**: Traffic distribution
+
+#### Virtual Firewalls
+- **VMware NSX**: Micro-segmentation and distributed firewall
+- **Palo Alto VM-Series**: Next-generation firewall
+- **Fortinet FortiGate-VM**: Unified threat management
+- **Check Point CloudGuard**: Cloud security platform
+
+### Network Function Virtualization (NFV)
+
+#### NFV Architecture
+- **VNF (Virtual Network Function)**: Virtualized network service
+- **NFVI (NFV Infrastructure)**: Compute, storage, network resources
+- **NFV MANO**: Management and Network Orchestration
+- **VIM (Virtual Infrastructure Manager)**: Resource management
+
+#### Common VNFs
+- **Virtual Firewalls**: Security and access control
+- **Virtual Load Balancers**: Traffic distribution
+- **Virtual WAN Optimizers**: Bandwidth optimization
+- **Virtual IPS/IDS**: Intrusion prevention/detection
+- **Virtual DPI**: Deep packet inspection
+- **Virtual CDN**: Content delivery network nodes
+
+#### NFV Benefits
+- **CAPEX Reduction**: Lower hardware costs
+- **OPEX Reduction**: Simplified operations
+- **Service Agility**: Faster service deployment
+- **Innovation**: Rapid introduction of new services
+- **Vendor Independence**: Reduced vendor lock-in
+
+### Overlay Networks
+
+#### VXLAN (Virtual Extensible LAN)
+- **Encapsulation**: Layer 2 frames in UDP packets
+- **VXLAN Network Identifier (VNI)**: 24-bit identifier (16M VLANs)
+- **VTEP (VXLAN Tunnel Endpoint)**: Encapsulation/decapsulation points
+- **Multicast Support**: BUM traffic handling
+- **Applications**: Data center interconnect, multi-tenancy
+
+#### NVGRE (Network Virtualization using Generic Routing Encapsulation)
+- **Encapsulation**: Layer 2 frames in GRE packets
+- **Virtual Subnet ID (VSID)**: 24-bit identifier
+- **Microsoft Standard**: Windows Server and System Center
+- **Load Balancing**: Flow-based load distribution
+
+#### STT (Stateless Transport Tunneling)
+- **Encapsulation**: Frames in TCP-like headers
+- **Stateless**: No connection state maintenance
+- **Hardware Offload**: TSO/LRO optimization
+- **VMware Technology**: NSX platform component
+
+#### GENEVE (Generic Network Virtualization Encapsulation)
+- **Flexible Headers**: Variable-length option headers
+- **Extensibility**: Support for new features
+- **Industry Standard**: IETF standardization
+- **Vendor Neutral**: Multiple vendor support
+
+### Hypervisor Networking
+
+#### Type 1 Hypervisors (Bare Metal)
+- **VMware vSphere/ESXi**:
+  - vSphere Standard Switch (vSS)
+  - vSphere Distributed Switch (vDS)
+  - Port groups and distributed port groups
+  - Network I/O Control (NIOC)
+
+- **Microsoft Hyper-V**:
+  - Virtual switches (External, Internal, Private)
+  - VLAN tagging and trunking
+  - Bandwidth management
+  - NIC teaming support
+
+- **Citrix XenServer**:
+  - Network backend domains
+  - VLAN support
+  - Bonding and load balancing
+  - Quality of Service
+
+#### Type 2 Hypervisors (Hosted)
+- **VMware Workstation/Fusion**:
+  - NAT, Bridged, Host-only networking
+  - Virtual network editor
+  - Custom network configurations
+
+- **Oracle VirtualBox**:
+  - Multiple network adapters per VM
+  - Internal networks
+  - Port forwarding rules
+
+### Container Networking
+
+#### Container Network Interface (CNI)
+- **Specification**: Standard interface for container networking
+- **Plugins**: Flannel, Calico, Weave, Cilium
+- **IPAM**: IP Address Management plugins
+- **Chaining**: Multiple plugins in sequence
+
+#### Docker Networking
+- **Bridge Network**: Default single-host networking
+- **Host Network**: Direct host network access
+- **Overlay Network**: Multi-host networking with Swarm
+- **Macvlan Network**: MAC address assignment to containers
+- **None Network**: No networking configuration
+
+#### Kubernetes Networking
+- **Pod Network**: Each pod gets unique IP address
+- **Service Network**: Abstract layer for pod access
+- **Cluster Network**: Internal cluster communication
+- **Ingress Network**: External access management
+
+**Kubernetes Network Policies**:
+- **Ingress Rules**: Incoming traffic control
+- **Egress Rules**: Outgoing traffic control
+- **Namespace Isolation**: Inter-namespace communication
+- **Label Selectors**: Policy application based on labels
+
+### Micro-segmentation
+
+#### Concept
+Micro-segmentation creates security zones down to individual workload or application level, providing granular security control.
+
+#### Implementation Technologies
+- **VMware NSX**: Distributed firewall and security policies
+- **Cisco ACI**: Application Centric Infrastructure
+- **Illumio**: Adaptive Security Platform
+- **Guardicore**: Breach Detection and Response
+
+#### Benefits
+- **Reduced Attack Surface**: Limited lateral movement
+- **Compliance**: Granular audit and control
+- **Visibility**: Detailed traffic analysis
+- **Automation**: Policy-based security deployment
+
+---
+
+## 18. 🔗 Internet of Things (IoT) Networking
+
+### IoT Network Requirements
+
+#### Key Characteristics
+- **Low Power**: Battery-operated devices requiring years of operation
+- **Low Data Rate**: Intermittent, small data transmissions
+- **Long Range**: Wide area coverage requirements
+- **Low Cost**: Affordable device and connectivity pricing
+- **Scalability**: Support for millions of devices
+- **Reliability**: Consistent connectivity for critical applications
+
+#### IoT Network Topologies
+- **Star Topology**: Devices connect directly to gateway
+- **Mesh Topology**: Devices relay data through other devices
+- **Tree Topology**: Hierarchical structure with coordinators
+- **Hybrid Topology**: Combination of multiple topologies
+
+### IoT Communication Protocols
+
+#### Application Layer Protocols
+- **MQTT (Message Queuing Telemetry Transport)**:
+  - Publish/Subscribe messaging pattern
+  - Quality of Service levels (0, 1, 2)
+  - Lightweight and efficient
+  - Broker-based architecture
+  - Retain messages and last will testament
+
+- **CoAP (Constrained Application Protocol)**:
+  - RESTful protocol for constrained devices
+  - UDP-based with optional reliability
+  - Observe pattern for notifications
+  - Block-wise transfers for large data
+  - Proxy support for HTTP integration
+
+- **AMQP (Advanced Message Queuing Protocol)**:
+  - Message-oriented middleware
+  - Reliable message delivery
+  - Routing and queuing features
+  - Enterprise-grade messaging
+
+- **HTTP/HTTPS**:
+  - Standard web protocols
+  - RESTful APIs
+  - Higher overhead but universal support
+  - Secure communication with TLS
+
+#### Transport Layer Protocols
+- **UDP**: Connectionless, low overhead
+- **TCP**: Reliable, connection-oriented
+- **DTLS**: Datagram Transport Layer Security
+- **QUIC**: Modern transport protocol
+
+### LPWAN (Low Power Wide Area Network) Technologies
+
+#### LoRaWAN (Long Range Wide Area Network)
+- **Frequency Bands**: 
+  - 868 MHz (Europe)
+  - 915 MHz (North America)
+  - 433 MHz (Asia)
+- **Range**: 2-15 km (urban), up to 45 km (rural)
+- **Data Rates**: 0.3 - 50 kbps
+- **Device Classes**:
+  - **Class A**: Lowest power, uplink triggered
+  - **Class B**: Scheduled downlink windows
+  - **Class C**: Continuous listening, highest power
+- **Architecture**: End devices, gateways, network server, application server
+- **Security**: AES-128 encryption, device and application keys
+
+#### Sigfox
+- **Frequency**: 868 MHz (Europe), 902 MHz (US)
+- **Range**: 10-50 km (rural), 3-10 km (urban)
+- **Data Rate**: 100 bps uplink, 600 bps downlink
+- **Message Limit**: 140 messages/day uplink, 4 messages/day downlink
+- **Payload**: 12 bytes uplink, 8 bytes downlink
+- **Network**: Proprietary, operator-managed
+
+#### NB-IoT (Narrowband IoT)
+- **Standard**: 3GPP Release 13/14/15
+- **Frequency**: Licensed cellular spectrum
+- **Coverage**: 20 dB better than GSM
+- **Capacity**: 50,000+ devices per cell
+- **Data Rate**: 250 kbps downlink, 250 kbps uplink
+- **Latency**: 1.6-10 seconds
+- **Power Saving**: PSM (Power Saving Mode), eDRX (Extended DRX)
+
+#### LTE-M (LTE Cat-M1)
+- **Standard**: 3GPP Release 13
+- **Bandwidth**: 1.4 MHz
+- **Data Rate**: 1 Mbps downlink, 1 Mbps uplink
+- **Mobility**: Full mobility support
+- **Voice**: VoLTE support
+- **Applications**: Asset tracking, wearables, automotive
+
+### Short-Range IoT Technologies
+
+#### Zigbee 3.0
+- **Standard**: IEEE 802.15.4
+- **Frequency**: 2.4 GHz (global), 915 MHz (US), 868 MHz (Europe)
+- **Range**: 10-100 meters
+- **Data Rate**: 250 kbps (2.4 GHz), 40 kbps (915 MHz), 20 kbps (868 MHz)
+- **Network Topology**: Mesh, star, tree
+- **Device Types**: Coordinator, router, end device
+- **Applications**: Home automation, smart lighting, security systems
+
+#### Z-Wave
+- **Frequency**: 
+  - 908.42 MHz (US)
+  - 868.42 MHz (Europe)
+  - 919.82 MHz (Australia/New Zealand)
+- **Range**: 30 meters indoor, 100 meters outdoor
+- **Data Rate**: 9.6, 40, 100 kbps
+- **Network**: Mesh topology, up to 232 devices
+- **Interoperability**: Z-Wave Alliance certification
+- **Applications**: Home automation, security, energy management
+
+#### Thread
+- **Standard**: IEEE 802.15.4
+- **IPv6**: Native IPv6 support
+- **Mesh**: Self-healing mesh network
+- **Security**: AES encryption, device authentication
+- **Interoperability**: Works with other IP-based protocols
+- **Border Router**: IPv6 connectivity to other networks
+
+#### Matter (formerly Project CHIP)
+- **Connectivity Standards Alliance**: Industry collaboration
+- **Interoperability**: Universal IoT device communication
+- **Protocols**: Wi-Fi, Ethernet, Thread, Bluetooth LE
+- **Cloud Agnostic**: Works with multiple cloud services
+- **Security**: Certificate-based device authentication
+
+### IoT Network Architecture
+
+#### Edge Computing Architecture
+- **Edge Devices**: Sensors, actuators, smart devices
+- **Edge Gateways**: Local processing and protocol translation
+- **Edge Servers**: Compute resources at network edge
+- **Cloud Backend**: Centralized management and analytics
+
+#### Fog Computing
+- **Definition**: Distributed computing paradigm between edge and cloud
+- **Benefits**: Reduced latency, bandwidth optimization, local processing
+- **Use Cases**: Real-time analytics, caching, preprocessing
+
+#### IoT Protocols Stack
+```
+Application Layer    | MQTT, CoAP, HTTP, AMQP
+Security Layer      | DTLS, TLS, IPSec
+Transport Layer     | TCP, UDP, SCTP
+Network Layer       | IPv4, IPv6, 6LoWPAN, RPL
+Adaptation Layer    | 6LoWPAN, Thread
+Data Link Layer     | IEEE 802.15.4, IEEE 802.11, Ethernet
+Physical Layer      | Radio, Ethernet, Fiber
+```
+
+### IoT Security Considerations
+
+#### Device Security
+- **Secure Boot**: Verified boot process
+- **Hardware Security Module (HSM)**: Cryptographic key storage
+- **Firmware Updates**: Secure over-the-air updates
+- **Device Identity**: Unique device certificates
+- **Tamper Detection**: Physical security measures
+
+#### Network Security
+- **Encryption**: End-to-end encryption
+- **Authentication**: Device and user authentication
+- **Access Control**: Role-based access management
+- **Network Segmentation**: Isolated IoT networks
+- **Anomaly Detection**: Unusual traffic pattern detection
+
+#### Data Security
+- **Data Privacy**: Personal information protection
+- **Data Integrity**: Tamper-proof data transmission
+- **Data Sovereignty**: Geographic data location control
+- **Consent Management**: User permission handling
+
+---
+
+## 19. 🚀 Emerging Technologies
+
+### 5G Networks
+
+#### 5G Technology Overview
+Fifth-generation wireless technology designed to deliver unprecedented speed, ultra-low latency, and massive connectivity.
+
+#### Key 5G Features
+- **Enhanced Mobile Broadband (eMBB)**:
+  - Peak data rates: 20 Gbps downlink, 10 Gbps uplink
+  - User experience: 100 Mbps downlink, 50 Mbps uplink
+  - Higher capacity and better coverage
+
+- **Ultra-Reliable Low Latency Communications (URLLC)**:
+  - Latency: 1 millisecond or less
+  - Reliability: 99.999% success rate
+  - Applications: Autonomous vehicles, industrial automation, remote surgery
+
+- **Massive Machine Type Communications (mMTC)**:
+  - Device density: 1 million devices per km²
+  - Battery life: 10+ years
+  - Applications: IoT sensors, smart cities, agriculture
+
+#### 5G Network Architecture
+- **Radio Access Network (RAN)**:
+  - gNodeB (gNB): 5G base station
+  - Central Unit (CU): Centralized processing
+  - Distributed Unit (DU): Distributed radio functions
+  - Radio Unit (RU): Antenna and radio functions
+
+- **5G Core (5GC)**:
+  - Service-Based Architecture (SBA)
+  - Network Functions (NF): AMF, SMF, UPF, AUSF, UDM, PCF, NSSF
+  - Network Slicing: Customized network services
+  - Edge Computing: Multi-access Edge Computing (MEC)
+
+#### 5G Frequency Bands
+- **Sub-6 GHz (FR1)**:
+  - Frequencies: 450 MHz - 6 GHz
+  - Coverage: Wide area coverage
+  - Speed: Moderate to high speeds
+  - Penetration: Good building penetration
+
+- **mmWave (FR2)**:
+  - Frequencies: 24.25 - 52.6 GHz
+  - Coverage: Short range, high capacity
+  - Speed: Extremely high speeds (multi-Gbps)
+  - Challenges: Limited range, poor penetration
+
+#### 5G Use Cases
+- **Autonomous Vehicles**: Vehicle-to-everything (V2X) communication
+- **Industrial IoT**: Factory automation, predictive maintenance
+- **Augmented/Virtual Reality**: Immersive experiences
+- **Smart Cities**: Traffic management, public safety
+- **Telemedicine**: Remote surgery, real-time diagnostics
+- **Fixed Wireless Access**: Broadband alternative
+
+### 6G Research and Development
+
+#### 6G Vision (Expected ~2030)
+- **Data Rates**: 100 Gbps to 1 Tbps
+- **Latency**: Sub-millisecond (0.1 ms)
+- **Reliability**: 99.99999% (Seven 9s)
+- **Device Density**: 10 million devices per km²
+- **Energy Efficiency**: 100x improvement over 5G
+
+#### 6G Key Technologies
+- **Terahertz Communications**: 100 GHz - 3 THz frequencies
+- **Artificial Intelligence**: AI-native network architecture
+- **Quantum Communications**: Quantum key distribution
+- **Holographic Communications**: 3D holographic displays
+- **Brain-Computer Interfaces**: Direct neural connections
+- **Space-Terrestrial Networks**: Satellite integration
+
+### Quantum Networking
+
+#### Quantum Key Distribution (QKD)
+- **Principle**: Quantum mechanics for secure key exchange
+- **Security**: Information-theoretic security
+- **Protocols**: BB84, E91, SARG04
+- **Challenges**: Distance limitations, infrastructure cost
+
+#### Quantum Internet Vision
+- **Quantum Entanglement**: Instantaneous correlation
+- **Quantum Teleportation**: State transfer
+- **Distributed Quantum Computing**: Networked quantum processors
+- **Timeline**: Research phase, commercial deployment decades away
+
+### Artificial Intelligence in Networking
+
+#### AI/ML Applications in Networks
+- **Network Optimization**: Automatic parameter tuning
+- **Predictive Maintenance**: Proactive failure prevention
+- **Anomaly Detection**: Security threat identification
+- **Traffic Engineering**: Dynamic routing optimization
+- **Resource Allocation**: Intelligent bandwidth management
+- **Self-Healing Networks**: Automatic problem resolution
+
+#### Intent-Based Networking (IBN)
+- **Business Intent**: High-level policy specification
+- **Translation**: Intent to network configuration
+- **Automation**: Automatic implementation and monitoring
+- **Assurance**: Continuous verification and correction
+
+### Network Function Virtualization Evolution
+
+#### Cloud-Native Network Functions (CNF)
+- **Containerization**: Kubernetes-based deployment
+- **Microservices**: Decomposed network functions
+- **DevOps**: Continuous integration/deployment
+- **Scalability**: Horizontal scaling capabilities
+
+#### Serverless Networking
+- **Function-as-a-Service (FaaS)**: Event-driven network functions
+- **Auto-scaling**: Demand-based resource allocation
+- **Cost Optimization**: Pay-per-use model
+- **Stateless Functions**: Simplified management
+
+### Blockchain in Networking
+
+#### Blockchain Applications
+- **Identity Management**: Decentralized identity verification
+- **DNS**: Decentralized domain name resolution
+- **Routing**: Blockchain-based routing protocols
+- **IoT Security**: Device authentication and data integrity
+- **Network Governance**: Decentralized network management
+
+#### Challenges
+- **Scalability**: Limited transaction throughput
+- **Energy Consumption**: Proof-of-work consensus overhead
+- **Latency**: Block confirmation delays
+- **Integration**: Legacy system compatibility
+
+### Extended Reality (XR) Networking
+
+#### XR Requirements
+- **Ultra-Low Latency**: Motion-to-photon latency <20ms
+- **High Bandwidth**: 4K/8K video streaming per eye
+- **Reliable Connectivity**: Consistent performance
+- **Edge Computing**: Local processing for responsiveness
+
+#### Network Challenges
+- **Quality of Experience (QoE)**: Immersive experience maintenance
+- **Mobility**: Seamless handoffs during movement
+- **Multi-user Sessions**: Shared virtual environments
+- **Content Delivery**: Efficient XR content distribution
+
+---
+
+## 20. 🔧 Network Troubleshooting
+
+### Troubleshooting Methodology
+
+#### Structured Approach
+1. **Define the Problem**: Clearly identify symptoms and scope
+2. **Gather Information**: Collect relevant data and documentation
+3. **Analyze the Information**: Review configurations, logs, and monitoring data
+4. **Eliminate Variables**: Isolate potential causes systematically
+5. **Propose Hypothesis**: Develop theory based on evidence
+6. **Test Hypothesis**: Implement test to validate theory
+7. **Solve Problem**: Apply appropriate solution
+8. **Document Solution**: Record for future reference
+
+#### OSI Model Troubleshooting
+- **Layer 1 (Physical)**: Cable continuity, port status, power
+- **Layer 2 (Data Link)**: Switch port configuration, VLAN, MAC tables
+- **Layer 3 (Network)**: IP configuration, routing tables, subnet masks
+- **Layer 4 (Transport)**: Port connectivity, firewall rules
+- **Layer 5-7 (Session/Presentation/Application)**: Service configuration, certificates, application logs
+
+### Common Network Problems
+
+#### Physical Layer Issues
+- **Cable Problems**:
+  - Symptoms: Intermittent connectivity, slow speeds, no link
+  - Tools: Cable tester, TDR (Time Domain Reflectometer), OTDR (Optical)
+  - Solutions: Cable replacement, connector repair, proper termination
+
+- **Port Issues**:
+  - Symptoms: Link down, speed/duplex mismatch
+  - Tools: Interface status, error counters
+  - Solutions: Port configuration, cleaning, replacement
+
+- **Power Issues**:
+  - Symptoms: Device not powering on, random reboots
+  - Tools: Multimeter, UPS monitoring
+  - Solutions: Power supply replacement, UPS installation
+
+#### Data Link Layer Issues
+- **Switching Problems**:
+  - Symptoms: Broadcast storms, MAC table overflow
+  - Tools: MAC address table, port statistics
+  - Solutions: Spanning Tree configuration, port security
+
+- **VLAN Issues**:
+  - Symptoms: Inter-VLAN communication failure
+  - Tools: VLAN configuration, trunk status
+  - Solutions: VLAN assignment, trunk configuration
+
+#### Network Layer Issues
+- **IP Configuration**:
+  - Symptoms: Cannot reach remote networks
+  - Tools: ping, traceroute, routing table
+  - Solutions: IP address correction, subnet mask adjustment
+
+- **Routing Problems**:
+  - Symptoms: Packets taking suboptimal paths
+  - Tools: Routing protocols, routing table analysis
+  - Solutions: Routing protocol configuration, static routes
+
+- **DNS Issues**:
+  - Symptoms: Cannot resolve domain names
+  - Tools: nslookup, dig, DNS server logs
+  - Solutions: DNS server configuration, forwarder setup
+
+#### Transport Layer Issues
+- **Firewall Blocking**:
+  - Symptoms: Connection timeouts, service unavailable
+  - Tools: Firewall logs, port scanner
+  - Solutions: Firewall rule modification, port opening
+
+- **NAT Problems**:
+  - Symptoms: Inbound connections failing
+  - Tools: NAT table, connection tracking
+  - Solutions: Port forwarding, NAT rule adjustment
+
+### Network Troubleshooting Tools
+
+#### Command Line Tools
+
+##### Windows Tools
+- **ping**: Basic connectivity testing
+  ```cmd
+  ping 8.8.8.8
+  ping -t google.com  # Continuous ping
+  ping -l 1500 host   # Large packet size
+  ```
+
+- **tracert**: Path tracing to destination
+  ```cmd
+  tracert google.com
+  tracert -h 20 host  # Maximum hops
+  ```
+
+- **nslookup**: DNS query tool
+  ```cmd
+  nslookup google.com
+  nslookup google.com 8.8.8.8  # Specific DNS server
+  ```
+
+- **ipconfig**: IP configuration
+  ```cmd
+  ipconfig /all
+  ipconfig /release
+  ipconfig /renew
+  ipconfig /flushdns
+  ```
+
+- **netstat**: Network statistics
+  ```cmd
+  netstat -an         # All connections
+  netstat -rn         # Routing table
+  netstat -s          # Protocol statistics
+  ```
+
+- **pathping**: Combined ping and traceroute
+  ```cmd
+  pathping google.com
+  ```
+
+- **telnet**: TCP port testing
+  ```cmd
+  telnet google.com 80
+  ```
+
+##### Linux/Unix Tools
+- **ping**: Connectivity testing
+  ```bash
+  ping -c 4 8.8.8.8
+  ping -f host        # Flood ping
+  ping -s 1500 host   # Packet size
+  ```
+
+- **traceroute**: Path tracing
+  ```bash
+  traceroute google.com
+  traceroute -n host  # Numeric output
+  ```
+
+- **dig**: DNS lookup tool
+  ```bash
+  dig google.com
+  dig @8.8.8.8 google.com A
+  dig -x 8.8.8.8      # Reverse lookup
+  ```
+
+- **netstat**: Network information
+  ```bash
+  netstat -tuln       # TCP/UDP listening ports
+  netstat -rn         # Routing table
+  netstat -i          # Interface statistics
+  ```
+
+- **ss**: Socket statistics (netstat replacement)
+  ```bash
+  ss -tuln            # TCP/UDP listening
+  ss -s               # Summary statistics
+  ```
+
+- **tcpdump**: Packet capture
+  ```bash
+  tcpdump -i eth0 host 192.168.1.1
+  tcpdump -i any port 80
+  ```
+
+- **nmap**: Network scanner
+  ```bash
+  nmap -sn 192.168.1.0/24    # Ping scan
+  nmap -sS -O target         # SYN scan with OS detection
+  ```
+
+#### GUI Tools
+
+##### Network Analyzers
+- **Wireshark**: Comprehensive packet analyzer
+  - Protocol dissection
+  - Traffic analysis
+  - Security analysis
+  - Performance troubleshooting
+
+- **SolarWinds Network Performance Monitor**: Enterprise monitoring
+  - Real-time monitoring
+  - Alerting and reporting
+  - Capacity planning
+  - Root cause analysis
+
+- **PRTG Network Monitor**: All-in-one monitoring
+  - Infrastructure monitoring
+  - Bandwidth monitoring
+  - Application monitoring
+  - Custom sensors
+
+##### Specialized Tools
+- **Lansweeper**: Network asset discovery
+- **Advanced IP Scanner**: Network device discovery
+- **Angry IP Scanner**: Fast IP scanner
+- **Network Notepad**: Network documentation
+- **SpiceWorks**: IT asset management
+
+### Performance Monitoring
+
+#### Key Performance Indicators (KPIs)
+- **Bandwidth Utilization**: Percentage of available bandwidth used
+- **Latency**: Round-trip time for packets
+- **Jitter**: Variation in latency
+- **Packet Loss**: Percentage of lost packets
+- **Throughput**: Actual data transfer rate
+- **Response Time**: Application response time
+- **Availability**: Network uptime percentage
+- **Error Rates**: Interface errors and discards
+
+#### Monitoring Tools
+- **SNMP (Simple Network Management Protocol)**:
+  - MIB (Management Information Base) queries
+  - Polling and trap-based monitoring
+  - Community strings and SNMPv3 security
+
+- **Flow-based Monitoring**:
+  - **NetFlow**: Cisco's flow monitoring
+  - **sFlow**: Sampling-based flow monitoring
+  - **IPFIX**: IP Flow Information Export standard
+  - **J-Flow**: Juniper's flow monitoring
+
+- **Synthetic Monitoring**:
+  - Proactive testing of network services
+  - SLA compliance verification
+  - User experience simulation
+  - End-to-end path testing
+
+### Wireless Troubleshooting
+
+#### Common Wireless Issues
+- **Signal Strength**: Poor signal quality or coverage
+- **Interference**: RF interference from other devices
+- **Authentication**: Security credential problems
+- **Roaming**: Handoff issues between access points
+- **Capacity**: Too many clients on single AP
+
+#### Wireless Tools
+- **Site Survey Tools**:
+  - Ekahau Site Survey
+  - AirMagnet Survey PRO
+  - TamoGraph Site Survey
+  - WiFi Explorer (macOS)
+
+- **Spectrum Analyzers**:
+  - Identify RF interference sources
+  - Measure signal strength and quality
+  - Analyze channel utilization
+  - Detect rogue access points
+
+### Documentation and Change Management
+
+#### Network Documentation
+- **Network Topology Diagrams**: Physical and logical layouts
+- **IP Address Management (IPAM)**: Address allocation tracking
+- **Configuration Management**: Device configuration backups
+- **Cable Management**: Cable labeling and documentation
+- **Vendor Information**: Support contacts and warranty details
+
+#### Change Management Process
+1. **Change Request**: Formal change proposal
+2. **Impact Assessment**: Risk and impact analysis
+3. **Approval Process**: Management approval
+4. **Implementation Planning**: Detailed implementation steps
+5. **Testing**: Validation of changes
+6. **Rollback Plan**: Recovery procedures
+7. **Documentation Update**: Record keeping
+
+---
+
+
