@@ -3,26 +3,38 @@
 ## Project Structure Overview
 
 ```
+pubspec.yaml                         # Flutter project config file
+README.md                            # Project documentation
+.gitignore                           # Git ignore file (optional but recommended)
+
+assets/                              # Assets folder for images, fonts, etc.
+├── images/                          # Store image assets
+│   └── logo.png
+├── fonts/                           # Custom fonts if any
+│   └── Roboto-Regular.ttf
+└── translations/                    # Localization files if needed
+    └── en.json
+
 lib/
-├── main.dart                           # App entry point
+├── main.dart                        # App entry point
 ├── app/
-│   ├── app.dart                       # Main app configuration
+│   ├── app.dart                     # Main app configuration
 │   └── routes/
-│       ├── app_routes.dart           # Route definitions
-│       └── route_generator.dart      # Route generation logic
+│       ├── app_routes.dart          # Route definitions
+│       └── route_generator.dart     # Route generation logic
 ├── core/
 │   ├── constants/
-│   │   ├── app_constants.dart        # App-wide constants
-│   │   ├── api_constants.dart        # API endpoints
-│   │   └── theme_constants.dart      # Theme configuration
+│   │   ├── app_constants.dart       # App-wide constants
+│   │   ├── api_constants.dart       # API endpoints
+│   │   └── theme_constants.dart     # Theme configuration
 │   ├── utils/
-│   │   ├── validators.dart           # Input validation utilities
+│   │   ├── validators.dart          # Input validation utilities
 │   │   ├── formatters.dart          # Data formatting utilities
 │   │   └── extensions.dart          # Dart extensions
 │   └── services/
 │       ├── api_service.dart         # HTTP service layer
 │       ├── storage_service.dart     # Local storage service
-│       └── navigation_service.dart   # Navigation service
+│       └── navigation_service.dart  # Navigation service
 ├── data/
 │   ├── models/
 │   │   ├── user_model.dart          # User data model
@@ -48,13 +60,13 @@ lib/
 │   │   │   └── splash_screen.dart   # Splash screen view
 │   │   └── widgets/
 │   │       ├── common/
-│   │       │   ├── custom_button.dart    # Reusable button widget
+│   │       │   ├── custom_button.dart     # Reusable button widget
 │   │       │   ├── custom_text_field.dart # Reusable text field
-│   │       │   ├── loading_widget.dart   # Loading indicator
-│   │       │   └── error_widget.dart     # Error display widget
+│   │       │   ├── loading_widget.dart    # Loading indicator
+│   │       │   └── error_widget.dart      # Error display widget
 │   │       └── specific/
-│   │           ├── user_card.dart        # User-specific card widget
-│   │           └── product_card.dart     # Product-specific card widget
+│   │           ├── user_card.dart         # User-specific card widget
+│   │           └── product_card.dart      # Product-specific card widget
 │   └── themes/
 │       ├── app_theme.dart           # Main theme configuration
 │       ├── light_theme.dart         # Light theme
@@ -65,6 +77,11 @@ lib/
     │   └── user_role.dart           # User role enums
     └── mixins/
         └── validation_mixin.dart    # Validation mixin
+
+test/                                # Unit and widget tests
+├── home_screen_test.dart
+└── widget_test.dart
+
 ```
 
 ---
@@ -6811,4 +6828,6500 @@ class CustomButton extends StatelessWidget {
   }
 }
 ```
+## lib/presentation/views/widgets/common/custom_text_field.dart
 
+**✅ What issue it solves/benefits:**
+- Provides consistent text input styling across the entire application
+- Encapsulates validation logic and error handling in a reusable component
+- Reduces code duplication and maintains design consistency
+- Centralizes text field behavior modifications and updates
+- Improves maintainability by having a single source of truth for text inputs
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+/// Custom reusable text field widget that provides consistent styling
+/// and behavior across the application
+class CustomTextField extends StatefulWidget {
+  // Text field label displayed above the input
+  final String label;
+  
+  // Placeholder text shown when field is empty
+  final String? hintText;
+  
+  // Controller to manage the text field's value
+  final TextEditingController? controller;
+  
+  // Function called when text changes
+  final ValueChanged<String>? onChanged;
+  
+  // Function called when editing is complete
+  final VoidCallback? onEditingComplete;
+  
+  // Function called when field is submitted
+  final ValueChanged<String>? onSubmitted;
+  
+  // Validation function that returns error message or null
+  final String? Function(String?)? validator;
+  
+  // Whether this field is for password input (hides text)
+  final bool isPassword;
+  
+  // Whether this field is required (shows asterisk)
+  final bool isRequired;
+  
+  // Whether this field is enabled for input
+  final bool isEnabled;
+  
+  // Whether this field should be read-only
+  final bool isReadOnly;
+  
+  // Maximum number of lines for the text field
+  final int maxLines;
+  
+  // Maximum length of text allowed
+  final int? maxLength;
+  
+  // Keyboard type for the input
+  final TextInputType keyboardType;
+  
+  // Input formatters to restrict input
+  final List<TextInputFormatter>? inputFormatters;
+  
+  // Prefix icon for the text field
+  final Widget? prefixIcon;
+  
+  // Suffix icon for the text field
+  final Widget? suffixIcon;
+  
+  // Initial value for the text field
+  final String? initialValue;
+  
+  // Focus node for controlling focus
+  final FocusNode? focusNode;
+  
+  // Text capitalization behavior
+  final TextCapitalization textCapitalization;
+
+  const CustomTextField({
+    Key? key,
+    required this.label,
+    this.hintText,
+    this.controller,
+    this.onChanged,
+    this.onEditingComplete,
+    this.onSubmitted,
+    this.validator,
+    this.isPassword = false,
+    this.isRequired = false,
+    this.isEnabled = true,
+    this.isReadOnly = false,
+    this.maxLines = 1,
+    this.maxLength,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.initialValue,
+    this.focusNode,
+    this.textCapitalization = TextCapitalization.none,
+  }) : super(key: key);
+
+  @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  // Controls whether password text is visible
+  bool _isPasswordVisible = false;
+  
+  // Internal controller if none provided
+  late TextEditingController _controller;
+  
+  // Whether this field currently has validation errors
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize controller if not provided
+    _controller = widget.controller ?? TextEditingController();
+    
+    // Set initial value if provided and no controller given
+    if (widget.initialValue != null && widget.controller == null) {
+      _controller.text = widget.initialValue!;
+    }
+    
+    // Listen for text changes to clear error state
+    _controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    // Clean up controller listener
+    _controller.removeListener(_onTextChanged);
+    
+    // Dispose controller only if we created it internally
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    
+    super.dispose();
+  }
+
+  /// Called when text changes to clear error state
+  void _onTextChanged() {
+    if (_hasError) {
+      setState(() {
+        _hasError = false;
+      });
+    }
+  }
+
+  /// Toggles password visibility
+  void _togglePasswordVisibility() {
+    setState(() {
+      _isPasswordVisible = !_isPasswordVisible;
+    });
+  }
+
+  /// Validates the current text and updates error state
+  String? _validateText(String? value) {
+    final error = widget.validator?.call(value);
+    
+    // Update error state for UI changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _hasError = error != null;
+        });
+      }
+    });
+    
+    return error;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Get theme for consistent styling
+    final theme = Theme.of(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label with optional required indicator
+        _buildLabel(theme),
+        
+        const SizedBox(height: 8),
+        
+        // Main text field
+        _buildTextField(theme),
+      ],
+    );
+  }
+
+  /// Builds the label widget with optional required asterisk
+  Widget _buildLabel(ThemeData theme) {
+    return RichText(
+      text: TextSpan(
+        text: widget.label,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: theme.colorScheme.onSurface,
+        ),
+        children: widget.isRequired
+            ? [
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+
+  /// Builds the main text field with all configurations
+  Widget _buildTextField(ThemeData theme) {
+    return TextFormField(
+      // Basic configuration
+      controller: _controller,
+      focusNode: widget.focusNode,
+      enabled: widget.isEnabled,
+      readOnly: widget.isReadOnly,
+      maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
+      keyboardType: widget.keyboardType,
+      textCapitalization: widget.textCapitalization,
+      inputFormatters: widget.inputFormatters,
+      
+      // Password configuration
+      obscureText: widget.isPassword && !_isPasswordVisible,
+      
+      // Callbacks
+      onChanged: widget.onChanged,
+      onEditingComplete: widget.onEditingComplete,
+      onFieldSubmitted: widget.onSubmitted,
+      validator: widget.validator != null ? _validateText : null,
+      
+      // Styling
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: widget.isEnabled 
+            ? theme.colorScheme.onSurface 
+            : theme.colorScheme.onSurface.withOpacity(0.6),
+      ),
+      
+      decoration: InputDecoration(
+        // Hint text
+        hintText: widget.hintText,
+        hintStyle: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        
+        // Icons
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: _buildSuffixIcon(),
+        
+        // Border styling
+        border: _buildBorder(theme, false),
+        enabledBorder: _buildBorder(theme, false),
+        focusedBorder: _buildBorder(theme, true),
+        errorBorder: _buildErrorBorder(theme),
+        focusedErrorBorder: _buildErrorBorder(theme),
+        disabledBorder: _buildDisabledBorder(theme),
+        
+        // Fill color
+        filled: true,
+        fillColor: widget.isEnabled
+            ? theme.colorScheme.surface
+            : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        
+        // Content padding
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        
+        // Counter style for max length
+        counterStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        
+        // Error styling
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.error,
+        ),
+        errorMaxLines: 2,
+      ),
+    );
+  }
+
+  /// Builds the suffix icon (password toggle or custom)
+  Widget? _buildSuffixIcon() {
+    if (widget.isPassword) {
+      // Password visibility toggle
+      return IconButton(
+        icon: Icon(
+          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+        onPressed: _togglePasswordVisibility,
+        tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
+      );
+    }
+    
+    return widget.suffixIcon;
+  }
+
+  /// Builds normal border
+  OutlineInputBorder _buildBorder(ThemeData theme, bool isFocused) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: isFocused
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline.withOpacity(0.5),
+        width: isFocused ? 2 : 1,
+      ),
+    );
+  }
+
+  /// Builds error border
+  OutlineInputBorder _buildErrorBorder(ThemeData theme) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: theme.colorScheme.error,
+        width: 2,
+      ),
+    );
+  }
+
+  /// Builds disabled border
+  OutlineInputBorder _buildDisabledBorder(ThemeData theme) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: theme.colorScheme.outline.withOpacity(0.3),
+        width: 1,
+      ),
+    );
+  }
+}
+
+/// Extension to provide common text field configurations
+extension CustomTextFieldExtensions on CustomTextField {
+  /// Creates an email text field
+  static CustomTextField email({
+    Key? key,
+    String label = 'Email',
+    String? hintText = 'Enter your email',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.emailAddress,
+      textCapitalization: TextCapitalization.none,
+      prefixIcon: const Icon(Icons.email_outlined),
+    );
+  }
+
+  /// Creates a password text field
+  static CustomTextField password({
+    Key? key,
+    String label = 'Password',
+    String? hintText = 'Enter your password',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      isPassword: true,
+      prefixIcon: const Icon(Icons.lock_outlined),
+    );
+  }
+
+  /// Creates a phone number text field
+  static CustomTextField phone({
+    Key? key,
+    String label = 'Phone Number',
+    String? hintText = 'Enter your phone number',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.phone,
+      prefixIcon: const Icon(Icons.phone_outlined),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(15),
+      ],
+    );
+  }
+
+  /// Creates a search text field
+  static CustomTextField search({
+    Key? key,
+    String label = 'Search',
+    String? hintText = 'Search...',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onSubmitted,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.text,
+      prefixIcon: const Icon(Icons.search_outlined),
+      suffixIcon: controller?.text.isNotEmpty == true
+          ? IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () => controller?.clear(),
+            )
+          : null,
+    );
+  }
+}
+```
+
+## lib/presentation/views/widgets/common/loading_widget.dart
+
+**Purpose**: Provides a reusable loading indicator widget that can be used across different screens to show loading states consistently throughout the app.
+
+**Benefits of Separation**:
+- ✅ **Consistency**: Ensures all loading states look the same across the app
+- ✅ **Reusability**: Can be used in any screen or widget without code duplication
+- ✅ **Maintainability**: Changes to loading design only need to be made in one place
+- ✅ **Customization**: Allows for different loading styles based on context
+- ✅ **Performance**: Optimized widget that doesn't rebuild unnecessarily
+
+```dart
+import 'package:flutter/material.dart';
+
+/// A reusable loading widget that provides consistent loading indicators
+/// across the entire application with customizable options
+class LoadingWidget extends StatelessWidget {
+  // Message to display below the loading indicator
+  final String? message;
+  
+  // Size of the loading indicator (default: 50.0)
+  final double size;
+  
+  // Color of the loading indicator (uses theme primary color if null)
+  final Color? color;
+  
+  // Whether to show a semi-transparent background overlay
+  final bool showOverlay;
+  
+  // Type of loading indicator to display
+  final LoadingType type;
+
+  /// Creates a loading widget with customizable properties
+  /// 
+  /// [message] - Optional text to display below the loading indicator
+  /// [size] - Size of the loading indicator (default: 50.0)
+  /// [color] - Color of the loading indicator
+  /// [showOverlay] - Whether to show background overlay (default: false)
+  /// [type] - Type of loading indicator (default: circular)
+  const LoadingWidget({
+    Key? key,
+    this.message,
+    this.size = 50.0,
+    this.color,
+    this.showOverlay = false,
+    this.type = LoadingType.circular,
+  }) : super(key: key);
+
+  /// Factory constructor for creating a full-screen loading overlay
+  /// Used when you want to block the entire screen during loading
+  factory LoadingWidget.overlay({
+    String? message,
+    double size = 50.0,
+    Color? color,
+    LoadingType type = LoadingType.circular,
+  }) {
+    return LoadingWidget(
+      message: message,
+      size: size,
+      color: color,
+      showOverlay: true,
+      type: type,
+    );
+  }
+
+  /// Factory constructor for creating a small inline loading indicator
+  /// Used for buttons or small sections that are loading
+  factory LoadingWidget.small({
+    String? message,
+    Color? color,
+    LoadingType type = LoadingType.circular,
+  }) {
+    return LoadingWidget(
+      message: message,
+      size: 20.0,
+      color: color,
+      showOverlay: false,
+      type: type,
+    );
+  }
+
+  /// Factory constructor for creating a large prominent loading indicator
+  /// Used for main content areas that are loading
+  factory LoadingWidget.large({
+    String? message,
+    Color? color,
+    LoadingType type = LoadingType.circular,
+  }) {
+    return LoadingWidget(
+      message: message,
+      size: 80.0,
+      color: color,
+      showOverlay: false,
+      type: type,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Get the theme for consistent styling
+    final theme = Theme.of(context);
+    
+    // Determine the color to use (provided color or theme primary color)
+    final indicatorColor = color ?? theme.primaryColor;
+    
+    // Build the main loading content
+    Widget loadingContent = _buildLoadingContent(theme, indicatorColor);
+    
+    // If overlay is requested, wrap with a modal barrier
+    if (showOverlay) {
+      return _buildOverlayContent(loadingContent);
+    }
+    
+    return loadingContent;
+  }
+
+  /// Builds the main loading content with indicator and optional message
+  Widget _buildLoadingContent(ThemeData theme, Color indicatorColor) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Display the appropriate loading indicator based on type
+          _buildLoadingIndicator(indicatorColor),
+          
+          // Show message if provided
+          if (message != null) ...[
+            const SizedBox(height: 16.0),
+            Text(
+              message!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodyMedium?.color?.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Builds the loading indicator based on the specified type
+  Widget _buildLoadingIndicator(Color indicatorColor) {
+    switch (type) {
+      case LoadingType.circular:
+        // Standard circular progress indicator
+        return SizedBox(
+          width: size,
+          height: size,
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
+            strokeWidth: 3.0,
+          ),
+        );
+      
+      case LoadingType.linear:
+        // Linear progress indicator for horizontal loading
+        return SizedBox(
+          width: size * 2, // Make linear indicators wider
+          child: LinearProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(indicatorColor),
+            backgroundColor: indicatorColor.withOpacity(0.2),
+          ),
+        );
+      
+      case LoadingType.dots:
+        // Custom animated dots loading indicator
+        return SizedBox(
+          width: size,
+          height: size,
+          child: _DotsLoadingIndicator(
+            color: indicatorColor,
+            size: size,
+          ),
+        );
+      
+      case LoadingType.pulse:
+        // Pulsing circle loading indicator
+        return SizedBox(
+          width: size,
+          height: size,
+          child: _PulseLoadingIndicator(
+            color: indicatorColor,
+            size: size,
+          ),
+        );
+    }
+  }
+
+  /// Builds the overlay content with semi-transparent background
+  Widget _buildOverlayContent(Widget child) {
+    return Container(
+      // Full screen overlay
+      width: double.infinity,
+      height: double.infinity,
+      // Semi-transparent dark background
+      color: Colors.black.withOpacity(0.5),
+      child: child,
+    );
+  }
+}
+
+/// Enum defining different types of loading indicators available
+enum LoadingType {
+  circular,  // Standard circular progress indicator
+  linear,    // Horizontal linear progress indicator
+  dots,      // Custom animated dots
+  pulse,     // Pulsing circle animation
+}
+
+/// Custom animated dots loading indicator widget
+class _DotsLoadingIndicator extends StatefulWidget {
+  final Color color;
+  final double size;
+
+  const _DotsLoadingIndicator({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  State<_DotsLoadingIndicator> createState() => _DotsLoadingIndicatorState();
+}
+
+class _DotsLoadingIndicatorState extends State<_DotsLoadingIndicator>
+    with TickerProviderStateMixin {
+  late AnimationController _controller;
+  late List<Animation<double>> _animations;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Create animation controller for dots
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    // Create staggered animations for each dot
+    _animations = List.generate(3, (index) {
+      return Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(
+        CurvedAnimation(
+          parent: _controller,
+          curve: Interval(
+            index * 0.2,
+            (index * 0.2) + 0.6,
+            curve: Curves.easeInOut,
+          ),
+        ),
+      );
+    });
+    
+    // Start the animation and repeat
+    _controller.repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dotSize = widget.size / 8; // Calculate dot size relative to total size
+    
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: dotSize / 4),
+              child: Transform.scale(
+                scale: 0.5 + (_animations[index].value * 0.5),
+                child: Container(
+                  width: dotSize,
+                  height: dotSize,
+                  decoration: BoxDecoration(
+                    color: widget.color.withOpacity(0.3 + (_animations[index].value * 0.7)),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+}
+
+/// Custom pulsing circle loading indicator widget
+class _PulseLoadingIndicator extends StatefulWidget {
+  final Color color;
+  final double size;
+
+  const _PulseLoadingIndicator({
+    required this.color,
+    required this.size,
+  });
+
+  @override
+  State<_PulseLoadingIndicator> createState() => _PulseLoadingIndicatorState();
+}
+
+class _PulseLoadingIndicatorState extends State<_PulseLoadingIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Create animation controller for pulse effect
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1000),
+      vsync: this,
+    );
+    
+    // Create scaling animation for pulse effect
+    _animation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: Curves.easeInOut,
+      ),
+    );
+    
+    // Start the animation and repeat
+    _controller.repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _animation.value,
+          child: Container(
+            width: widget.size,
+            height: widget.size,
+            decoration: BoxDecoration(
+              color: widget.color.withOpacity(0.3 + (_animation.value * 0.4)),
+              shape: BoxShape.circle,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+```
+
+### Usage Examples:
+
+```dart
+// Basic usage in a screen
+class ExampleScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: LoadingWidget(
+        message: "Loading data...",
+      ),
+    );
+  }
+}
+
+// Usage with different types
+LoadingWidget(type: LoadingType.dots)
+LoadingWidget.small(message: "Saving...")
+LoadingWidget.large(message: "Processing...")
+LoadingWidget.overlay(message: "Please wait...")
+
+// Usage in a conditional widget
+Consumer<UserProvider>(
+  builder: (context, userProvider, child) {
+    if (userProvider.isLoading) {
+      return LoadingWidget(message: "Loading users...");
+    }
+    return UserListView();
+  },
+)
+```
+
+
+
+## lib/presentation/views/widgets/common/error_widget.dart
+
+**✅ What issue it solves/benefits:**
+- Provides consistent error handling and display across the application
+- Offers different error types (network, validation, generic) with appropriate actions
+- Centralizes error UI patterns and reduces code duplication
+- Improves user experience with clear error messages and recovery options
+- Supports both inline and full-screen error displays
+
+```dart
+import 'package:flutter/material.dart';
+
+/// Enum to define different types of errors
+enum ErrorType {
+  network,        // Network/connectivity errors
+  validation,     // Form validation errors
+  notFound,       // Resource not found errors
+  permission,     // Permission denied errors
+  generic,        // Generic application errors
+  timeout,        // Request timeout errors
+}
+
+/// Custom error widget that provides consistent error display
+/// throughout the application with various error types and actions
+class CustomErrorWidget extends StatelessWidget {
+  // Type of error to display
+  final ErrorType errorType;
+  
+  // Main error message
+  final String message;
+  
+  // Detailed error description (optional)
+  final String? description;
+  
+  // Function to call when retry button is pressed
+  final VoidCallback? onRetry;
+  
+  // Function to call when secondary action is pressed
+  final VoidCallback? onSecondaryAction;
+  
+  // Custom retry button text
+  final String? retryText;
+  
+  // Custom secondary action text
+  final String? secondaryActionText;
+  
+  // Whether to show the retry button
+  final bool showRetry;
+  
+  // Whether to show secondary action button
+  final bool showSecondaryAction;
+  
+  // Custom icon for the error
+  final Widget? customIcon;
+  
+  // Whether this is a compact error display
+  final bool isCompact;
+  
+  // Background color for the error container
+  final Color? backgroundColor;
+
+  const CustomErrorWidget({
+    Key? key,
+    required this.errorType,
+    required this.message,
+    this.description,
+    this.onRetry,
+    this.onSecondaryAction,
+    this.retryText,
+    this.secondaryActionText,
+    this.showRetry = true,
+    this.showSecondaryAction = false,
+    this.customIcon,
+    this.isCompact = false,
+    this.backgroundColor,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    
+    if (isCompact) {
+      return _buildCompactError(theme);
+    }
+    
+    return _buildFullError(theme);
+  }
+
+  /// Builds compact error display for inline usage
+  Widget _buildCompactError(ThemeData theme) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: backgroundColor ?? _getErrorColor(theme).withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _getErrorColor(theme).withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          // Error icon
+          Icon(
+            _getErrorIcon(),
+            color: _getErrorColor(theme),
+            size: 20,
+          ),
+          
+          const SizedBox(width: 12),
+          
+          // Error message
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                
+                if (description != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    description!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          
+          // Retry button
+          if (showRetry && onRetry != null) ...[
+            const SizedBox(width: 8),
+            TextButton(
+              onPressed: onRetry,
+              style: TextButton.styleFrom(
+                foregroundColor: _getErrorColor(theme),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(retryText ?? 'Retry'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Builds full error display for screen-level usage
+  Widget _buildFullError(ThemeData theme) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Error illustration/icon
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: _getErrorColor(theme).withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: customIcon ?? Icon(
+              _getErrorIcon(),
+              size: 40,
+              color: _getErrorColor(theme),
+            ),
+          ),
+          
+          const SizedBox(height: 24),
+          
+          // Error title
+          Text(
+            _getErrorTitle(),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: theme.colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Error message
+          Text(
+            message,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: theme.colorScheme.onSurface.withOpacity(0.8),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          
+          // Error description
+          if (description != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              description!,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+          
+          const SizedBox(height: 32),
+          
+          // Action buttons
+          _buildActionButtons(theme),
+        ],
+      ),
+    );
+  }
+
+  /// Builds action buttons (retry, secondary action)
+  Widget _buildActionButtons(ThemeData theme) {
+    if (!showRetry && !showSecondaryAction) {
+      return const SizedBox.shrink();
+    }
+    
+    return Column(
+      children: [
+        // Primary retry button
+        if (showRetry && onRetry != null)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: onRetry,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _getErrorColor(theme),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(retryText ?? _getDefaultRetryText()),
+            ),
+          ),
+        
+        // Secondary action button
+        if (showSecondaryAction && onSecondaryAction != null) ...[
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: onSecondaryAction,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: theme.colorScheme.onSurface,
+                side: BorderSide(color: theme.colorScheme.outline),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(secondaryActionText ?? 'Go Back'),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  /// Gets the appropriate error color based on error type
+  Color _getErrorColor(ThemeData theme) {
+    switch (errorType) {
+      case ErrorType.network:
+        return theme.colorScheme.error;
+      case ErrorType.validation:
+        return Colors.orange;
+      case ErrorType.notFound:
+        return Colors.blue;
+      case ErrorType.permission:
+        return Colors.red;
+      case ErrorType.timeout:
+        return Colors.amber;
+      case ErrorType.generic:
+      default:
+        return theme.colorScheme.error;
+    }
+  }
+
+  /// Gets the appropriate error icon based on error type
+  IconData _getErrorIcon() {
+    switch (errorType) {
+      case ErrorType.network:
+        return Icons.wifi_off_rounded;
+      case ErrorType.validation:
+        return Icons.warning_rounded;
+      case ErrorType.notFound:
+        return Icons.search_off_rounded;
+      case ErrorType.permission:
+        return Icons.lock_rounded;
+      case ErrorType.timeout:
+        return Icons.access_time_rounded;
+      case ErrorType.generic:
+      default:
+        return Icons.error_rounded;
+    }
+  }
+
+  /// Gets the appropriate error title based on error type
+  String _getErrorTitle() {
+    switch (errorType) {
+      case ErrorType.network:
+        return 'Connection Error';
+      case ErrorType.validation:
+        return 'Validation Error';
+      case ErrorType.notFound:
+        return 'Not Found';
+      case ErrorType.permission:
+        return 'Access Denied';
+      case ErrorType.timeout:
+        return 'Request Timeout';
+      case ErrorType.generic:
+      default:
+        return 'Something Went Wrong';
+    }
+  }
+
+  /// Gets the default retry text based on error type
+  String _getDefaultRetryText() {
+    switch (errorType) {
+      case ErrorType.network:
+        return 'Retry Connection';
+      case ErrorType.timeout:
+        return 'Try Again';
+      case ErrorType.generic:
+      default:
+        return 'Retry';
+    }
+  }
+}
+
+/// Factory methods for common error scenarios
+extension CustomErrorWidgetFactory on CustomErrorWidget {
+  /// Creates a network error widget
+  static CustomErrorWidget network({
+    Key? key,
+    String? message = 'Unable to connect to the internet',
+    String? description = 'Please check your connection and try again',
+    VoidCallback? onRetry,
+    bool isCompact = false,
+  }) {
+    return CustomErrorWidget(
+      key: key,
+      errorType: ErrorType.network,
+      message: message!,
+      description: description,
+      onRetry: onRetry,
+      isCompact: isCompact,
+    );
+  }
+
+  /// Creates a not found error widget
+  static CustomErrorWidget notFound({
+    Key? key,
+    String? message = 'Content not found',
+    String? description = 'The requested content could not be found',
+    VoidCallback? onSecondaryAction,
+    bool isCompact = false,
+  }) {
+    return CustomErrorWidget(
+      key: key,
+      errorType: ErrorType.notFound,
+      message: message!,
+      description: description,
+      showRetry: false,
+      showSecondaryAction: true,
+      onSecondaryAction: onSecondaryAction,
+      secondaryActionText: 'Go Back',
+      isCompact: isCompact,
+    );
+  }
+
+  /// Creates a permission error widget
+  static CustomErrorWidget permission({
+    Key? key,
+    String? message = 'Permission denied',
+    String? description = 'You don\'t have permission to access this content',
+    VoidCallback? onSecondaryAction,
+    bool isCompact = false,
+  }) {
+    return CustomErrorWidget(
+      key: key,
+      errorType: ErrorType.permission,
+      message: message!,
+      description: description,
+      showRetry: false,
+      showSecondaryAction: true,
+      onSecondaryAction: onSecondaryAction,
+      secondaryActionText: 'Go Back',
+      isCompact: isCompact,
+    );
+  }
+
+  /// Creates a generic error widget
+  static CustomErrorWidget generic({
+    Key? key,
+    String? message = 'An unexpected error occurred',
+    String? description,
+    VoidCallback? onRetry,
+    bool isCompact = false,
+  }) {
+    return CustomErrorWidget(
+      key: key,
+      errorType: ErrorType.generic,
+      message: message!,
+      description: description,
+      onRetry: onRetry,
+      isCompact: isCompact,
+    );
+  }
+}
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+/// Custom reusable text field widget that provides consistent styling
+/// and behavior across the application
+class CustomTextField extends StatefulWidget {
+  // Text field label displayed above the input
+  final String label;
+  
+  // Placeholder text shown when field is empty
+  final String? hintText;
+  
+  // Controller to manage the text field's value
+  final TextEditingController? controller;
+  
+  // Function called when text changes
+  final ValueChanged<String>? onChanged;
+  
+  // Function called when editing is complete
+  final VoidCallback? onEditingComplete;
+  
+  // Function called when field is submitted
+  final ValueChanged<String>? onSubmitted;
+  
+  // Validation function that returns error message or null
+  final String? Function(String?)? validator;
+  
+  // Whether this field is for password input (hides text)
+  final bool isPassword;
+  
+  // Whether this field is required (shows asterisk)
+  final bool isRequired;
+  
+  // Whether this field is enabled for input
+  final bool isEnabled;
+  
+  // Whether this field should be read-only
+  final bool isReadOnly;
+  
+  // Maximum number of lines for the text field
+  final int maxLines;
+  
+  // Maximum length of text allowed
+  final int? maxLength;
+  
+  // Keyboard type for the input
+  final TextInputType keyboardType;
+  
+  // Input formatters to restrict input
+  final List<TextInputFormatter>? inputFormatters;
+  
+  // Prefix icon for the text field
+  final Widget? prefixIcon;
+  
+  // Suffix icon for the text field
+  final Widget? suffixIcon;
+  
+  // Initial value for the text field
+  final String? initialValue;
+  
+  // Focus node for controlling focus
+  final FocusNode? focusNode;
+  
+  // Text capitalization behavior
+  final TextCapitalization textCapitalization;
+
+  const CustomTextField({
+    Key? key,
+    required this.label,
+    this.hintText,
+    this.controller,
+    this.onChanged,
+    this.onEditingComplete,
+    this.onSubmitted,
+    this.validator,
+    this.isPassword = false,
+    this.isRequired = false,
+    this.isEnabled = true,
+    this.isReadOnly = false,
+    this.maxLines = 1,
+    this.maxLength,
+    this.keyboardType = TextInputType.text,
+    this.inputFormatters,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.initialValue,
+    this.focusNode,
+    this.textCapitalization = TextCapitalization.none,
+  }) : super(key: key);
+
+  @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  // Controls whether password text is visible
+  bool _isPasswordVisible = false;
+  
+  // Internal controller if none provided
+  late TextEditingController _controller;
+  
+  // Whether this field currently has validation errors
+  bool _hasError = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize controller if not provided
+    _controller = widget.controller ?? TextEditingController();
+    
+    // Set initial value if provided and no controller given
+    if (widget.initialValue != null && widget.controller == null) {
+      _controller.text = widget.initialValue!;
+    }
+    
+    // Listen for text changes to clear error state
+    _controller.addListener(_onTextChanged);
+  }
+
+  @override
+  void dispose() {
+    // Clean up controller listener
+    _controller.removeListener(_onTextChanged);
+    
+    // Dispose controller only if we created it internally
+    if (widget.controller == null) {
+      _controller.dispose();
+    }
+    
+    super.dispose();
+  }
+
+  /// Called when text changes to clear error state
+  void _onTextChanged() {
+    if (_hasError) {
+      setState(() {
+        _hasError = false;
+      });
+    }
+  }
+
+  /// Toggles password visibility
+  void _togglePasswordVisibility() {
+    setState(() {
+      _isPasswordVisible = !_isPasswordVisible;
+    });
+  }
+
+  /// Validates the current text and updates error state
+  String? _validateText(String? value) {
+    final error = widget.validator?.call(value);
+    
+    // Update error state for UI changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        setState(() {
+          _hasError = error != null;
+        });
+      }
+    });
+    
+    return error;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Get theme for consistent styling
+    final theme = Theme.of(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label with optional required indicator
+        _buildLabel(theme),
+        
+        const SizedBox(height: 8),
+        
+        // Main text field
+        _buildTextField(theme),
+      ],
+    );
+  }
+
+  /// Builds the label widget with optional required asterisk
+  Widget _buildLabel(ThemeData theme) {
+    return RichText(
+      text: TextSpan(
+        text: widget.label,
+        style: theme.textTheme.bodyMedium?.copyWith(
+          fontWeight: FontWeight.w500,
+          color: theme.colorScheme.onSurface,
+        ),
+        children: widget.isRequired
+            ? [
+                TextSpan(
+                  text: ' *',
+                  style: TextStyle(
+                    color: theme.colorScheme.error,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ]
+            : null,
+      ),
+    );
+  }
+
+  /// Builds the main text field with all configurations
+  Widget _buildTextField(ThemeData theme) {
+    return TextFormField(
+      // Basic configuration
+      controller: _controller,
+      focusNode: widget.focusNode,
+      enabled: widget.isEnabled,
+      readOnly: widget.isReadOnly,
+      maxLines: widget.maxLines,
+      maxLength: widget.maxLength,
+      keyboardType: widget.keyboardType,
+      textCapitalization: widget.textCapitalization,
+      inputFormatters: widget.inputFormatters,
+      
+      // Password configuration
+      obscureText: widget.isPassword && !_isPasswordVisible,
+      
+      // Callbacks
+      onChanged: widget.onChanged,
+      onEditingComplete: widget.onEditingComplete,
+      onFieldSubmitted: widget.onSubmitted,
+      validator: widget.validator != null ? _validateText : null,
+      
+      // Styling
+      style: theme.textTheme.bodyLarge?.copyWith(
+        color: widget.isEnabled 
+            ? theme.colorScheme.onSurface 
+            : theme.colorScheme.onSurface.withOpacity(0.6),
+      ),
+      
+      decoration: InputDecoration(
+        // Hint text
+        hintText: widget.hintText,
+        hintStyle: theme.textTheme.bodyLarge?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        
+        // Icons
+        prefixIcon: widget.prefixIcon,
+        suffixIcon: _buildSuffixIcon(),
+        
+        // Border styling
+        border: _buildBorder(theme, false),
+        enabledBorder: _buildBorder(theme, false),
+        focusedBorder: _buildBorder(theme, true),
+        errorBorder: _buildErrorBorder(theme),
+        focusedErrorBorder: _buildErrorBorder(theme),
+        disabledBorder: _buildDisabledBorder(theme),
+        
+        // Fill color
+        filled: true,
+        fillColor: widget.isEnabled
+            ? theme.colorScheme.surface
+            : theme.colorScheme.surfaceVariant.withOpacity(0.3),
+        
+        // Content padding
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+        
+        // Counter style for max length
+        counterStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.onSurface.withOpacity(0.6),
+        ),
+        
+        // Error styling
+        errorStyle: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.error,
+        ),
+        errorMaxLines: 2,
+      ),
+    );
+  }
+
+  /// Builds the suffix icon (password toggle or custom)
+  Widget? _buildSuffixIcon() {
+    if (widget.isPassword) {
+      // Password visibility toggle
+      return IconButton(
+        icon: Icon(
+          _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+        ),
+        onPressed: _togglePasswordVisibility,
+        tooltip: _isPasswordVisible ? 'Hide password' : 'Show password',
+      );
+    }
+    
+    return widget.suffixIcon;
+  }
+
+  /// Builds normal border
+  OutlineInputBorder _buildBorder(ThemeData theme, bool isFocused) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: isFocused
+            ? theme.colorScheme.primary
+            : theme.colorScheme.outline.withOpacity(0.5),
+        width: isFocused ? 2 : 1,
+      ),
+    );
+  }
+
+  /// Builds error border
+  OutlineInputBorder _buildErrorBorder(ThemeData theme) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: theme.colorScheme.error,
+        width: 2,
+      ),
+    );
+  }
+
+  /// Builds disabled border
+  OutlineInputBorder _buildDisabledBorder(ThemeData theme) {
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(
+        color: theme.colorScheme.outline.withOpacity(0.3),
+        width: 1,
+      ),
+    );
+  }
+}
+
+/// Extension to provide common text field configurations
+extension CustomTextFieldExtensions on CustomTextField {
+  /// Creates an email text field
+  static CustomTextField email({
+    Key? key,
+    String label = 'Email',
+    String? hintText = 'Enter your email',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.emailAddress,
+      textCapitalization: TextCapitalization.none,
+      prefixIcon: const Icon(Icons.email_outlined),
+    );
+  }
+
+  /// Creates a password text field
+  static CustomTextField password({
+    Key? key,
+    String label = 'Password',
+    String? hintText = 'Enter your password',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      isPassword: true,
+      prefixIcon: const Icon(Icons.lock_outlined),
+    );
+  }
+
+  /// Creates a phone number text field
+  static CustomTextField phone({
+    Key? key,
+    String label = 'Phone Number',
+    String? hintText = 'Enter your phone number',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    String? Function(String?)? validator,
+    bool isRequired = true,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      validator: validator,
+      isRequired: isRequired,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.phone,
+      prefixIcon: const Icon(Icons.phone_outlined),
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly,
+        LengthLimitingTextInputFormatter(15),
+      ],
+    );
+  }
+
+  /// Creates a search text field
+  static CustomTextField search({
+    Key? key,
+    String label = 'Search',
+    String? hintText = 'Search...',
+    TextEditingController? controller,
+    ValueChanged<String>? onChanged,
+    ValueChanged<String>? onSubmitted,
+    bool isEnabled = true,
+  }) {
+    return CustomTextField(
+      key: key,
+      label: label,
+      hintText: hintText,
+      controller: controller,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      isEnabled: isEnabled,
+      keyboardType: TextInputType.text,
+      prefixIcon: const Icon(Icons.search_outlined),
+      suffixIcon: controller?.text.isNotEmpty == true
+          ? IconButton(
+              icon: const Icon(Icons.clear),
+              onPressed: () => controller?.clear(),
+            )
+          : null,
+    );
+  }
+}
+```
+
+
+## lib/presentation/views/widgets/specific/user_card.dart
+
+**✅ What issue it solves/benefits:**
+- Creates a reusable component specifically for displaying user information
+- Maintains consistent user data presentation across different screens
+- Encapsulates user-related UI logic and styling in one place
+- Provides interactive elements (tap, favorite, etc.) for user cards
+- Supports different display modes (list item, grid item, detailed card)
+
+```dart
+import 'package:flutter/material.dart';
+import '../../../../data/models/user_model.dart';
+import '../../../../shared/enums/user_role.dart';
+
+/// Enum to define different user card display modes
+enum UserCardType {
+  listItem,    // Compact horizontal layout for lists
+  gridItem,    // Square card for grid views
+  detailed,    // Full detailed card with all information
+  minimal,     // Minimal display with just essential info
+}
+
+/// Reusable user card widget that displays user information
+/// in various formats based on the specified type
+class UserCard extends StatefulWidget {
+  // User data to display
+  final UserModel user;
+  
+  // Type of card layout
+  final UserCardType cardType;
+  
+  // Callback when card is tapped
+  final VoidCallback? onTap;
+  
+  // Callback when favorite button is tapped
+  final ValueChanged<bool>? onFavoriteToggle;
+  
+  // Callback when more options is tapped
+  final VoidCallback? onMoreOptions;
+  
+  // Whether the user is currently favorited
+  final bool isFavorite;
+  
+  // Whether to show favorite button
+  final bool showFavorite;
+  
+  // Whether to show more options button
+  final bool showMoreOptions;
+  
+  // Whether to show online status indicator
+  final bool showOnlineStatus;
+  
+  // Custom background color
+  final Color? backgroundColor;
+  
+  // Whether the card is in selection mode
+  final bool isSelectionMode;
+  
+  // Whether this card is selected
+  final bool isSelected;
+  
+  // Callback when selection changes
+  final ValueChanged<bool>? onSelectionChanged;
+
+  const UserCard({
+    Key? key,
+    required this.user,
+    this.cardType = UserCardType.listItem,
+    this.onTap,
+    this.onFavoriteToggle,
+    this.onMoreOptions,
+    this.isFavorite = false,
+    this.showFavorite = false,
+    this.showMoreOptions = false,
+    this.showOnlineStatus = true,
+    this.backgroundColor,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelectionChanged,
+  }) : super(key: key);
+
+  @override
+  State<UserCard> createState() => _UserCardState();
+}
+
+class _UserCardState extends State<UserCard> {
+  // Track hover state for desktop interactions
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.cardType) {
+      case UserCardType.listItem:
+        return _buildListItem();
+      case UserCardType.gridItem:
+        return _buildGridItem();
+      case UserCardType.detailed:
+        return _buildDetailedCard();
+      case UserCardType.minimal:
+        return _buildMinimalCard();
+    }
+  }
+
+  /// Builds list item layout (horizontal, compact)
+  Widget _buildListItem() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+            width: widget.isSelected ? 2 : 1,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.isSelectionMode 
+                ? () => widget.onSelectionChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                children: [
+                  // Selection checkbox (if in selection mode)
+                  if (widget.isSelectionMode) ...[
+                    Checkbox(
+                      value: widget.isSelected,
+                      onChanged: (value) => widget.onSelectionChanged?.call(value ?? false),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  
+                  // User avatar with online status
+                  Stack(
+                    children: [
+                      _buildAvatar(48),
+                      if (widget.showOnlineStatus && widget.user.isOnline)
+                        Positioned(
+                          right: 2,
+                          bottom: 2,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.surface,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  
+                  const SizedBox(width: 12),
+                  
+                  // User information
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Name and role
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.user.name,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (widget.user.role != UserRole.user)
+                              _buildRoleBadge(),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 4),
+                        
+                        // Email
+                        Text(
+                          widget.user.email,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        // Last seen (if offline)
+                        if (!widget.user.isOnline && widget.user.lastSeen != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            'Last seen ${_formatLastSeen(widget.user.lastSeen!)}',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurface.withOpacity(0.5),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  
+                  // Action buttons
+                  if (!widget.isSelectionMode) ...[
+                    // Favorite button
+                    if (widget.showFavorite)
+                      IconButton(
+                        icon: Icon(
+                          widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                          color: widget.isFavorite ? Colors.red : null,
+                        ),
+                        onPressed: () => widget.onFavoriteToggle?.call(!widget.isFavorite),
+                        tooltip: widget.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                      ),
+                    
+                    // More options button
+                    if (widget.showMoreOptions)
+                      IconButton(
+                        icon: const Icon(Icons.more_vert),
+                        onPressed: widget.onMoreOptions,
+                        tooltip: 'More options',
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds grid item layout (square card)
+  Widget _buildGridItem() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+            width: widget.isSelected ? 2 : 1,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.isSelectionMode 
+                ? () => widget.onSelectionChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Selection checkbox (if in selection mode)
+                  if (widget.isSelectionMode) ...[
+                    Align(
+                      alignment: Alignment.topRight,
+                      child: Checkbox(
+                        value: widget.isSelected,
+                        onChanged: (value) => widget.onSelectionChanged?.call(value ?? false),
+                      ),
+                    ),
+                  ] else ...[
+                    // Action buttons row
+                    if (widget.showFavorite || widget.showMoreOptions)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (widget.showFavorite)
+                            IconButton(
+                              icon: Icon(
+                                widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                color: widget.isFavorite ? Colors.red : null,
+                                size: 20,
+                              ),
+                              onPressed: () => widget.onFavoriteToggle?.call(!widget.isFavorite),
+                              tooltip: widget.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                            ),
+                          if (widget.showMoreOptions)
+                            IconButton(
+                              icon: const Icon(Icons.more_vert, size: 20),
+                              onPressed: widget.onMoreOptions,
+                              tooltip: 'More options',
+                            ),
+                        ],
+                      ),
+                  ],
+                  
+                  // User avatar with online status
+                  Stack(
+                    children: [
+                      _buildAvatar(64),
+                      if (widget.showOnlineStatus && widget.user.isOnline)
+                        Positioned(
+                          right: 4,
+                          bottom: 4,
+                          child: Container(
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.surface,
+                                width: 3,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // User name
+                  Text(
+                    widget.user.name,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  
+                  const SizedBox(height: 4),
+                  
+                  // User email
+                  Text(
+                    widget.user.email,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
+                  ),
+                  
+                  // Role badge
+                  if (widget.user.role != UserRole.user) ...[
+                    const SizedBox(height: 8),
+                    _buildRoleBadge(),
+                  ],
+                  
+                  // Online status text
+                  if (widget.showOnlineStatus) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.user.isOnline 
+                          ? 'Online' 
+                          : 'Last seen ${_formatLastSeen(widget.user.lastSeen ?? DateTime.now())}',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: widget.user.isOnline 
+                            ? Colors.green 
+                            : theme.colorScheme.onSurface.withOpacity(0.5),
+                      ),
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds detailed card layout (full information)
+  Widget _buildDetailedCard() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+            width: widget.isSelected ? 2 : 1,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.isSelectionMode 
+                ? () => widget.onSelectionChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header row with avatar and actions
+                  Row(
+                    children: [
+                      // Selection checkbox (if in selection mode)
+                      if (widget.isSelectionMode) ...[
+                        Checkbox(
+                          value: widget.isSelected,
+                          onChanged: (value) => widget.onSelectionChanged?.call(value ?? false),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      
+                      // User avatar with online status
+                      Stack(
+                        children: [
+                          _buildAvatar(72),
+                          if (widget.showOnlineStatus && widget.user.isOnline)
+                            Positioned(
+                              right: 4,
+                              bottom: 4,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: Colors.green,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: theme.colorScheme.surface,
+                                    width: 3,
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      
+                      const SizedBox(width: 16),
+                      
+                      // User basic info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Name and role
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    widget.user.name,
+                                    style: theme.textTheme.headlineSmall?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (widget.user.role != UserRole.user)
+                                  _buildRoleBadge(),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 4),
+                            
+                            // Email
+                            Text(
+                              widget.user.email,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                color: theme.colorScheme.onSurface.withOpacity(0.8),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            
+                            // Phone (if available)
+                            if (widget.user.phone?.isNotEmpty == true) ...[
+                              const SizedBox(height: 2),
+                              Text(
+                                widget.user.phone!,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurface.withOpacity(0.7),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                      
+                      // Action buttons
+                      if (!widget.isSelectionMode) ...[
+                        Column(
+                          children: [
+                            if (widget.showFavorite)
+                              IconButton(
+                                icon: Icon(
+                                  widget.isFavorite ? Icons.favorite : Icons.favorite_border,
+                                  color: widget.isFavorite ? Colors.red : null,
+                                ),
+                                onPressed: () => widget.onFavoriteToggle?.call(!widget.isFavorite),
+                                tooltip: widget.isFavorite ? 'Remove from favorites' : 'Add to favorites',
+                              ),
+                            if (widget.showMoreOptions)
+                              IconButton(
+                                icon: const Icon(Icons.more_vert),
+                                onPressed: widget.onMoreOptions,
+                                tooltip: 'More options',
+                              ),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+                  
+                  // Additional information
+                  Row(
+                    children: [
+                      // Online status
+                      if (widget.showOnlineStatus) ...[
+                        Icon(
+                          widget.user.isOnline ? Icons.circle : Icons.circle_outlined,
+                          color: widget.user.isOnline ? Colors.green : Colors.grey,
+                          size: 12,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.user.isOnline 
+                              ? 'Online now' 
+                              : 'Last seen ${_formatLastSeen(widget.user.lastSeen ?? DateTime.now())}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                          ),
+                        ),
+                        const Spacer(),
+                      ],
+                      
+                      // Join date
+                      Text(
+                        'Joined ${_formatJoinDate(widget.user.createdAt)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  // Bio or description (if available)
+                  if (widget.user.bio?.isNotEmpty == true) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      widget.user.bio!,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.8),
+                      ),
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds minimal card layout (just avatar and name)
+  Widget _buildMinimalCard() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: widget.isSelected 
+              ? Border.all(color: theme.colorScheme.primary, width: 2)
+              : null,
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.isSelectionMode 
+                ? () => widget.onSelectionChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Selection checkbox (if in selection mode)
+                  if (widget.isSelectionMode) ...[
+                    Checkbox(
+                      value: widget.isSelected,
+                      onChanged: (value) => widget.onSelectionChanged?.call(value ?? false),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  
+                  // User avatar
+                  Stack(
+                    children: [
+                      _buildAvatar(32),
+                      if (widget.showOnlineStatus && widget.user.isOnline)
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: Colors.green,
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: theme.colorScheme.surface,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  
+                  const SizedBox(width: 8),
+                  
+                  // User name
+                  Flexible(
+                    child: Text(
+                      widget.user.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds user avatar with fallback initials
+  Widget _buildAvatar(double size) {
+    if (widget.user.avatarUrl?.isNotEmpty == true) {
+      return CircleAvatar(
+        radius: size / 2,
+        backgroundImage: NetworkImage(widget.user.avatarUrl!),
+        onBackgroundImageError: (_, __) {
+          // Fallback to initials if image fails to load
+        },
+        child: widget.user.avatarUrl!.isEmpty ? _buildInitials(size) : null,
+      );
+    }
+    
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: _getAvatarColor(),
+      child: _buildInitials(size),
+    );
+  }
+
+  /// Builds initials text for avatar
+  Widget _buildInitials(double size) {
+    final initials = widget.user.name
+        .split(' ')
+        .take(2)
+        .map((word) => word.isNotEmpty ? word[0].toUpperCase() : '')
+        .join();
+    
+    return Text(
+      initials,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: size * 0.4,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+
+  /// Gets avatar background color based on user name
+  Color _getAvatarColor() {
+    final colors = [
+      Colors.blue,
+      Colors.green,
+      Colors.orange,
+      Colors.purple,
+      Colors.red,
+      Colors.teal,
+      Colors.indigo,
+      Colors.pink,
+    ];
+    
+    final index = widget.user.name.hashCode % colors.length;
+    return colors[index.abs()];
+  }
+
+  /// Builds role badge
+  Widget _buildRoleBadge() {
+    final theme = Theme.of(context);
+    
+    Color badgeColor;
+    String roleText;
+    
+    switch (widget.user.role) {
+      case UserRole.admin:
+        badgeColor = Colors.red;
+        roleText = 'Admin';
+        break;
+      case UserRole.moderator:
+        badgeColor = Colors.orange;
+        roleText = 'Mod';
+        break;
+      case UserRole.premium:
+        badgeColor = Colors.purple;
+        roleText = 'Premium';
+        break;
+      case UserRole.user:
+      default:
+        return const SizedBox.shrink();
+    }
+    
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: badgeColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: badgeColor.withOpacity(0.3)),
+      ),
+      child: Text(
+        roleText,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: badgeColor,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  /// Formats last seen date
+  String _formatLastSeen(DateTime lastSeen) {
+    final now = DateTime.now();
+    final difference = now.difference(lastSeen);
+    
+    if (difference.inMinutes < 1) {
+      return 'just now';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m ago';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}h ago';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}d ago';
+    } else {
+      return '${lastSeen.day}/${lastSeen.month}/${lastSeen.year}';
+    }
+  }
+
+  /// Formats join date
+  String _formatJoinDate(DateTime joinDate) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    
+    return '${months[joinDate.month - 1]} ${joinDate.year}';
+  }
+}
+```
+
+## lib/presentation/views/widgets/specific/product_card.dart
+
+**✅ What issue it solves/benefits:**
+- Creates a specialized component for displaying product information consistently
+- Handles various product display modes (grid, list, featured) with appropriate layouts
+- Encapsulates product-specific UI logic like pricing, ratings, and stock status
+- Provides interactive elements (add to cart, favorite, share) for e-commerce functionality
+- Maintains consistent product presentation across different screens
+
+```dart
+import 'package:flutter/material.dart';
+import '../../../../data/models/product_model.dart';
+
+/// Enum to define different product card display modes
+enum ProductCardType {
+  grid,        // Square card for grid views
+  list,        // Horizontal layout for list views
+  featured,    // Large featured card with detailed info
+  compact,     // Minimal card for suggestions
+}
+
+/// Reusable product card widget that displays product information
+/// in various formats based on the specified type
+class ProductCard extends StatefulWidget {
+  // Product data to display
+  final ProductModel product;
+  
+  // Type of card layout
+  final ProductCardType cardType;
+  
+  // Callback when card is tapped
+  final VoidCallback? onTap;
+  
+  // Callback when add to cart is tapped
+  final VoidCallback? onAddToCart;
+  
+  // Callback when favorite button is tapped
+  final ValueChanged<bool>? onFavoriteToggle;
+  
+  // Callback when share button is tapped
+  final VoidCallback? onShare;
+  
+  // Whether the product is currently favorited
+  final bool isFavorite;
+  
+  // Whether to show add to cart button
+  final bool showAddToCart;
+  
+  // Whether to show favorite button
+  final bool showFavorite;
+  
+  // Whether to show share button
+  final bool showShare;
+  
+  // Whether to show discount badge
+  final bool showDiscount;
+  
+  // Custom background color
+  final Color? backgroundColor;
+  
+  // Whether the card is in selection mode
+  final bool isSelectionMode;
+  
+  // Whether this card is selected
+  final bool isSelected;
+  
+  // Callback when selection changes
+  final ValueChanged<bool>? onSelectionChanged;
+
+  const ProductCard({
+    Key? key,
+    required this.product,
+    this.cardType = ProductCardType.grid,
+    this.onTap,
+    this.onAddToCart,
+    this.onFavoriteToggle,
+    this.onShare,
+    this.isFavorite = false,
+    this.showAddToCart = true,
+    this.showFavorite = true,
+    this.showShare = false,
+    this.showDiscount = true,
+    this.backgroundColor,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onSelectionChanged,
+  }) : super(key: key);
+
+  @override
+  State<ProductCard> createState() => _ProductCardState();
+}
+
+class _ProductCardState extends State<ProductCard> {
+  // Track hover state for desktop interactions
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.cardType) {
+      case ProductCardType.grid:
+        return _buildGridCard();
+      case ProductCardType.list:
+        return _buildListCard();
+      case ProductCardType.featured:
+        return _buildFeaturedCard();
+      case ProductCardType.compact:
+        return _buildCompactCard();
+    }
+  }
+
+  /// Builds grid card layout (square card for grid views)
+  Widget _buildGridCard() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: widget.isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+            width: widget.isSelected ? 2 : 1,
+          ),
+          boxShadow: _isHovered
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 12,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: widget.isSelectionMode 
+                ? () => widget.onSelectionChanged?.call(!widget.isSelected)
+                : widget.onTap,
+            borderRadius: BorderRadius.circular(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product image with badges
+                Expanded(
+                  flex: 3,
+                  child: _buildProductImage(),
+                ),
+                
+                // Product information
+                Expanded(
+                  flex: 2,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product name
+                        Text(
+                          widget.product.name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        
+                        const SizedBox(height: 4),
+                        
+                        // Price and rating
+                        Row(
+                          children: [
+                            Expanded(child: _buildPriceSection()),
+                            _buildRatingSection(),
+                          ],
+                        ),
+                        
+                        const Spacer(),
+                        
+                        // Action buttons
+                        if (!widget.isSelectionMode)
+                          _buildActionButtons(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds list card layout (horizontal layout)
+  Widget _buildListCard() {
+    final theme = Theme.of(context);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        height: 120,
+        decoration: BoxDecoration(
+          color: widget.backgroundColor ?? theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: widget.isSelected 
+                ? theme.colorScheme.primary
+                : theme.colorScheme.outline.withOpacity(0.2),
+            width: widget.isSelected ? 2 : 1,
+          ),
+          boxShadow
+
+## lib/presentation/views/widgets/common/loading_widget.dart
+
+**✅ What issue it solves/benefits:**
+- Provides consistent loading indicators across the entire application
+- Centralizes loading state management and prevents UI blocking
+- Offers different loading styles for various use cases (overlay, inline, skeleton)
+- Improves user experience with smooth loading transitions
+- Reduces code duplication for loading states
+
+```dart
+import 'package:flutter/material.dart';
+
+/// Enum to define different types of loading indicators
+enum LoadingType {
+  circular,    // Standard circular progress indicator
+  linear,      // Linear progress bar
+  dots,        // Animated dots
+  skeleton,    // Skeleton loading placeholder
+  overlay,     // Full screen overlay loading
+}
+
+/// Custom loading widget that provides consistent loading indicators
+/// throughout the application with various display options
+class LoadingWidget extends StatefulWidget {
+  // Type of loading indicator to display
+  final LoadingType type;
+  
+  // Custom message to show with loading indicator
+  final String? message;
+  
+  // Size of the loading indicator
+  final double size;
+  
+  // Color of the loading indicator
+  final Color? color;
+  
+  // Whether to show the loading message
+  final bool showMessage;
+  
+  // Background color for overlay type
+  final Color? backgroundColor;
+  
+  // Whether the overlay is dismissible
+  final bool isDismissible;
+  
+  // Custom widget to show instead of default message
+  final Widget? customMessage;
+  
+  // Height for skeleton loading
+  final double? skeletonHeight;
+  
+  // Width for skeleton loading
+  final double? skeletonWidth;
+
+  const LoadingWidget({
+    Key? key,
+    this.type = LoadingType.circular,
+    this.message,
+    this.size = 40.0,
+    this.color,
+    this.showMessage = true,
+    this.backgroundColor,
+    this.isDismissible = false,
+    this.customMessage,
+    this.skeletonHeight,
+    this.skeletonWidth,
+  }) : super(key: key);
+
+  @override
+  State<LoadingWidget> createState() => _LoadingWidgetState();
+}
+
+class _LoadingWidgetState extends State<LoadingWidget>
+    with TickerProviderStateMixin {
+  // Animation controller for custom animations
+  late AnimationController _animationController;
+  
+  // Animation for dot loading
+  late Animation<double> _dotAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Initialize animation controller
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    // Setup dot animation
+    _dotAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animationController,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Start animation for dot type
+    if (widget.type == LoadingType.dots) {
+      _animationController.repeat();
+    }
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    switch (widget.type) {
+      case LoadingType.circular:
+        return _buildCircularLoading();
+      case LoadingType.linear:
+        return _buildLinearLoading();
+      case LoadingType.dots:
+        return _buildDotsLoading();
+      case LoadingType.skeleton:
+        return _buildSkeletonLoading();
+      case LoadingType.overlay:
+        return _buildOverlayLoading();
+    }
+  }
+
+  /// Builds circular progress indicator with optional message
+  Widget _buildCircularLoading() {
+    final theme = Theme.of(context);
+    
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Circular progress indicator
+          SizedBox(
+            width: widget.size,
+            height: widget.size,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                widget.color ?? theme.colorScheme.primary,
+              ),
+            ),
+          ),
+          
+          // Optional message
+          if (widget.showMessage && widget.message != null) ...[
+            const SizedBox(height: 16),
+            widget.customMessage ?? _buildMessage(theme),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Builds linear progress indicator
+  Widget _buildLinearLoading() {
+    final theme = Theme.of(context);
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Linear progress indicator
+        LinearProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(
+            widget.color ?? theme.colorScheme.primary,
+          ),
+          backgroundColor: theme.colorScheme.surfaceVariant,
+        ),
+        
+        // Optional message
+        if (widget.showMessage && widget.message != null) ...[
+          const SizedBox(height: 12),
+          widget.customMessage ?? _buildMessage(theme),
+        ],
+      ],
+    );
+  }
+
+  /// Builds animated dots loading indicator
+  Widget _buildDotsLoading() {
+    final theme = Theme.of(context);
+    
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Animated dots
+          AnimatedBuilder(
+            animation: _dotAnimation,
+            builder: (context, child) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: List.generate(3, (index) {
+                  // Calculate delay for each dot
+                  final delay = index * 0.2;
+                  final animationValue = (_dotAnimation.value - delay).clamp(0.0, 1.0);
+                  
+                  return Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Transform.scale(
+                      scale: 0.8 + (0.4 * Curves.elasticOut.transform(animationValue)),
+                      child: Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: (widget.color ?? theme.colorScheme.primary)
+                              .withOpacity(0.3 + (0.7 * animationValue)),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                    ),
+                  );
+                }),
+              );
+            },
+          ),
+          
+          // Optional message
+          if (widget.showMessage && widget.message != null) ...[
+            const SizedBox(height: 16),
+            widget.customMessage ?? _buildMessage(theme),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Builds skeleton loading placeholder
+  Widget _buildSkeletonLoading() {
+    return _SkeletonAnimation(
+      child: Container(
+        width: widget.skeletonWidth ?? double.infinity,
+        height: widget.skeletonHeight ?? 16,
+        decoration: BoxDecoration(
+          color: Colors.grey[300],
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+    );
+  }
+
+  /// Builds full screen overlay loading
+  Widget _buildOverlayLoading() {
+    final theme = Theme.of(context);
+    
+    return Material(
+      color: widget.backgroundColor ?? 
+             theme.colorScheme.surface.withOpacity(0.8),
+      child: InkWell(
+        // Prevent dismissal if not dismissible
+        onTap: widget.isDismissible ? () => Navigator.of(context).pop() : null,
+        child: Container(
+          width: double.infinity,
+          height: double.infinity,
+          child: Center(
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Loading indicator
+                  SizedBox(
+                    width: widget.size,
+                    height: widget.size,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.color ?? theme.colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                  
+                  // Message
+                  if (widget.showMessage && widget.message != null) ...[
+                    const SizedBox(height: 16),
+                    widget.customMessage ?? _buildMessage(theme),
+                  ],
+                  
+                  // Dismissible hint
+                  if (widget.isDismissible) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap anywhere to dismiss',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds the loading message text
+  Widget _buildMessage(ThemeData theme) {
+    return Text(
+      widget.message!,
+      style: theme.textTheme.bodyMedium?.copyWith(
+        color: theme.colorScheme.onSurface.withOpacity(0.7),
+      ),
+      textAlign: TextAlign.center,
+    );
+  }
+}
+
+/// Skeleton animation widget for shimmer effect
+class _SkeletonAnimation extends StatefulWidget {
+  final Widget child;
+
+  const _SkeletonAnimation({required this.child});
+
+  @override
+  State<_SkeletonAnimation> createState() => _SkeletonAnimationState();
+}
+
+class _SkeletonAnimationState extends State<_SkeletonAnimation>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shimmerController;
+
+  @override
+  void initState() {
+    super.initState();
+    _shimmerController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _shimmerController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _shimmerController,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              colors: const [
+                Color(0xFFEBEBF4),
+                Color(0xFFF4F4F4),
+                Color(0xFFEBEBF4),
+              ],
+              stops: const [0.1, 0.3, 0.4],
+              begin: const Alignment(-1.0, -0.3),
+              end: const Alignment(1.0, 0.3),
+              tileMode: TileMode.clamp,
+              transform: _SlidingGradientTransform(
+                slidePercent: _shimmerController.value,
+              ),
+            ).createShader(bounds);
+          },
+          child: widget.child,
+        );
+      },
+    );
+  }
+}
+
+/// Transform for sliding gradient effect in skeleton loading
+class _SlidingGradientTransform extends GradientTransform {
+  final double slidePercent;
+
+  _SlidingGradientTransform({required this.slidePercent});
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    return Matrix4.translationValues(bounds.width * slidePercent, 0.0, 0.0);
+  }
+}
+
+/// Utility class for common loading scenarios
+class LoadingUtils {
+  /// Shows overlay loading dialog
+  static void showOverlayLoading(
+    BuildContext context, {
+    String? message = 'Loading...',
+    bool isDismissible = false,
+  }) {
+    showDialog(
+      context: context,
+      barrierDismissible: isDismissible,
+      builder: (context) => LoadingWidget(
+        type: LoadingType.overlay,
+        message: message,
+        isDismissible: isDismissible,
+      ),
+    );
+  }
+
+  /// Hides overlay loading dialog
+  static void hideOverlayLoading(BuildContext context) {
+    if (Navigator.of(context).canPop()) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// Creates a list of skeleton items for list loading
+  static List<Widget> buildSkeletonList({
+    int itemCount = 5,
+    double itemHeight = 80,
+    EdgeInsets? padding,
+  }) {
+    return List.generate(itemCount, (index) {
+      return Container(
+        padding: padding ?? const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            LoadingWidget(
+              type: LoadingType.skeleton,
+              skeletonHeight: itemHeight * 0.3,
+            ),
+            const SizedBox(height: 8),
+            LoadingWidget(
+              type: LoadingType.skeleton,
+              skeletonHeight: itemHeight * 0.2,
+              skeletonWidth: 200,
+            ),
+            const SizedBox(height: 4),
+            LoadingWidget(
+              type: LoadingType.skeleton,
+              skeletonHeight: itemHeight * 0.2,
+              skeletonWidth: 150,
+            ),
+          ],
+        ),
+      );
+    });
+  }
+}
+```
+## presentation/themes/app_theme.dart
+
+**What issue it solves/Benefits of separation:**
+- ✅ Centralizes theme management and provides a single point of control for app-wide theming
+- ✅ Enables easy switching between light/dark themes with consistent styling
+- ✅ Maintains design system consistency across the entire application
+- ✅ Simplifies theme customization and reduces code duplication
+- ✅ Provides type-safe access to theme properties throughout the app
+
+```dart
+// Main theme configuration that orchestrates light and dark themes
+// This file acts as the central hub for all theme-related configurations
+import 'package:flutter/material.dart';
+import 'light_theme.dart';
+import 'dark_theme.dart';
+import '../../core/constants/theme_constants.dart';
+
+/// AppTheme class manages the overall theme configuration for the application
+/// It provides static methods to get light and dark themes, and utility methods
+/// for accessing theme-specific properties
+class AppTheme {
+  // Private constructor to prevent instantiation
+  // This class is designed to be used as a static utility class
+  AppTheme._();
+
+  /// Returns the light theme configuration
+  /// This method creates and returns a complete ThemeData object for light mode
+  static ThemeData get lightTheme {
+    return LightTheme.theme;
+  }
+
+  /// Returns the dark theme configuration
+  /// This method creates and returns a complete ThemeData object for dark mode
+  static ThemeData get darkTheme {
+    return DarkTheme.theme;
+  }
+
+  /// Gets the current theme mode based on system settings or user preference
+  /// This can be extended to include user preference from shared preferences
+  static ThemeMode get themeMode {
+    // For now, we follow system theme, but this can be customized
+    // to read from user preferences stored in local storage
+    return ThemeMode.system;
+  }
+
+  /// Utility method to get text theme from current context
+  /// This provides easy access to text styles throughout the app
+  static TextTheme getTextTheme(BuildContext context) {
+    return Theme.of(context).textTheme;
+  }
+
+  /// Utility method to get color scheme from current context
+  /// This provides easy access to color palette throughout the app
+  static ColorScheme getColorScheme(BuildContext context) {
+    return Theme.of(context).colorScheme;
+  }
+
+  /// Checks if the current theme is dark mode
+  /// Useful for conditional rendering based on theme
+  static bool isDarkMode(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  /// Gets the primary color from current theme
+  /// Provides quick access to the main brand color
+  static Color getPrimaryColor(BuildContext context) {
+    return Theme.of(context).primaryColor;
+  }
+
+  /// Gets the background color from current theme
+  /// Useful for setting consistent background colors
+  static Color getBackgroundColor(BuildContext context) {
+    return Theme.of(context).scaffoldBackgroundColor;
+  }
+
+  /// Gets the card color from current theme
+  /// Ensures consistent card styling across the app
+  static Color getCardColor(BuildContext context) {
+    return Theme.of(context).cardColor;
+  }
+
+  /// Gets the error color from current theme
+  /// Provides consistent error state styling
+  static Color getErrorColor(BuildContext context) {
+    return Theme.of(context).colorScheme.error;
+  }
+
+  /// Gets the success color from theme constants
+  /// Since Flutter doesn't have a built-in success color, we use our custom one
+  static Color getSuccessColor(BuildContext context) {
+    return isDarkMode(context) 
+        ? ThemeConstants.successColorDark 
+        : ThemeConstants.successColorLight;
+  }
+
+  /// Gets the warning color from theme constants
+  /// Since Flutter doesn't have a built-in warning color, we use our custom one
+  static Color getWarningColor(BuildContext context) {
+    return isDarkMode(context) 
+        ? ThemeConstants.warningColorDark 
+        : ThemeConstants.warningColorLight;
+  }
+
+  /// Creates a custom TextStyle with theme-aware colors
+  /// This method helps create consistent text styles throughout the app
+  static TextStyle createTextStyle({
+    required BuildContext context,
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontSize: fontSize ?? 14.0,
+      fontWeight: fontWeight ?? FontWeight.normal,
+      color: color ?? getTextColor(context),
+      letterSpacing: letterSpacing,
+      height: height,
+      fontFamily: ThemeConstants.fontFamily,
+    );
+  }
+
+  /// Gets the appropriate text color based on current theme
+  /// Ensures text is readable in both light and dark modes
+  static Color getTextColor(BuildContext context) {
+    return Theme.of(context).textTheme.bodyLarge?.color ?? 
+           (isDarkMode(context) ? Colors.white : Colors.black);
+  }
+
+  /// Gets the appropriate secondary text color based on current theme
+  /// Used for less prominent text elements
+  static Color getSecondaryTextColor(BuildContext context) {
+    return Theme.of(context).textTheme.bodyMedium?.color ?? 
+           (isDarkMode(context) ? Colors.white70 : Colors.black54);
+  }
+
+  /// Creates a BoxDecoration with theme-aware styling
+  /// Useful for creating consistent container decorations
+  static BoxDecoration createBoxDecoration({
+    required BuildContext context,
+    Color? color,
+    double borderRadius = 8.0,
+    Color? borderColor,
+    double borderWidth = 1.0,
+    List<BoxShadow>? boxShadow,
+  }) {
+    return BoxDecoration(
+      color: color ?? getCardColor(context),
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: borderColor != null 
+          ? Border.all(color: borderColor, width: borderWidth)
+          : null,
+      boxShadow: boxShadow ?? [
+        BoxShadow(
+          color: isDarkMode(context) 
+              ? Colors.black26 
+              : Colors.grey.withOpacity(0.1),
+          blurRadius: 4.0,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
+
+  /// Creates an InputDecoration with consistent theme styling
+  /// Ensures all text fields have the same look and feel
+  static InputDecoration createInputDecoration({
+    required BuildContext context,
+    String? labelText,
+    String? hintText,
+    IconData? prefixIcon,
+    IconData? suffixIcon,
+    VoidCallback? onSuffixIconPressed,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+      suffixIcon: suffixIcon != null 
+          ? IconButton(
+              icon: Icon(suffixIcon),
+              onPressed: onSuffixIconPressed,
+            )
+          : null,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: isDarkMode(context) 
+              ? Colors.grey.shade600 
+              : Colors.grey.shade300,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getPrimaryColor(context),
+          width: 2.0,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getErrorColor(context),
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getErrorColor(context),
+          width: 2.0,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 12.0,
+      ),
+    );
+  }
+
+  /// Creates a ButtonStyle with consistent theme styling
+  /// Ensures all buttons have the same look and feel
+  static ButtonStyle createButtonStyle({
+    required BuildContext context,
+    Color? backgroundColor,
+    Color? foregroundColor,
+    double? elevation,
+    EdgeInsetsGeometry? padding,
+    Size? minimumSize,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor ?? getPrimaryColor(context),
+      foregroundColor: foregroundColor ?? Colors.white,
+      elevation: elevation ?? 2.0,
+      padding: padding ?? const EdgeInsets.symmetric(
+        horizontal: 24.0,
+        vertical: 12.0,
+      ),
+      minimumSize: minimumSize ?? const Size(100, 44),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+    );
+  }
+
+  /// Creates an AppBar theme with consistent styling
+  /// Ensures all app bars have the same look and feel
+  static AppBarTheme createAppBarTheme(BuildContext context) {
+    return AppBarTheme(
+      backgroundColor: getPrimaryColor(context),
+      foregroundColor: Colors.white,
+      elevation: 4.0,
+      centerTitle: true,
+      titleTextStyle: createTextStyle(
+        context: context,
+        fontSize: 20.0,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+      iconTheme: const IconThemeData(
+        color: Colors.white,
+        size: 24.0,
+      ),
+    );
+  }
+
+  /// Creates a Card theme with consistent styling
+  /// Ensures all cards have the same look and feel
+  static CardTheme createCardTheme(BuildContext context) {
+    return CardTheme(
+      color: getCardColor(context),
+      elevation: 2.0,
+      margin: const EdgeInsets.all(8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+    );
+  }
+}
+```
+
+## presentation/themes/light_theme.dart
+
+**What issue it solves**: Centralizes light theme configuration, ensuring consistent UI appearance across the entire application. Separates theme logic from business logic and provides easy maintenance of visual design system.
+
+**Benefits**: 
+- Consistent color scheme and typography throughout the app
+- Easy to modify theme properties in one place
+- Supports theme switching functionality
+- Better maintainability and design system management
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../../core/constants/theme_constants.dart';
+
+/// Light theme configuration for the application
+/// This class defines all visual elements for light mode including
+/// colors, typography, component themes, and system UI styling
+class LightTheme {
+  
+  /// Primary light theme data configuration
+  /// Contains all theme specifications for light mode
+  static ThemeData get theme {
+    return ThemeData(
+      // Basic theme properties
+      brightness: Brightness.light, // Sets overall brightness for the theme
+      useMaterial3: true, // Enables Material 3 design system
+      
+      // Color scheme configuration
+      colorScheme: _lightColorScheme,
+      
+      // Primary color configuration
+      primarySwatch: Colors.blue, // Material design primary swatch
+      primaryColor: ThemeConstants.primaryColor, // Custom primary color
+      
+      // Background and surface colors
+      scaffoldBackgroundColor: ThemeConstants.lightBackgroundColor,
+      backgroundColor: ThemeConstants.lightBackgroundColor, // Deprecated but still useful
+      canvasColor: ThemeConstants.lightSurfaceColor,
+      
+      // Typography theme configuration
+      textTheme: _lightTextTheme,
+      
+      // AppBar theme customization
+      appBarTheme: _lightAppBarTheme,
+      
+      // Bottom navigation bar theme
+      bottomNavigationBarTheme: _lightBottomNavTheme,
+      
+      // Button themes
+      elevatedButtonTheme: _lightElevatedButtonTheme,
+      textButtonTheme: _lightTextButtonTheme,
+      outlinedButtonTheme: _lightOutlinedButtonTheme,
+      
+      // Input decoration theme for text fields
+      inputDecorationTheme: _lightInputDecorationTheme,
+      
+      // Card theme configuration
+      cardTheme: _lightCardTheme,
+      
+      // Floating action button theme
+      floatingActionButtonTheme: _lightFABTheme,
+      
+      // Icon theme configuration
+      iconTheme: _lightIconTheme,
+      
+      // Divider theme
+      dividerTheme: _lightDividerTheme,
+      
+      // System UI overlay style for status bar
+      appBarTheme: _lightAppBarTheme.copyWith(
+        systemOverlayStyle: SystemUiOverlayStyle.dark, // Dark icons on light status bar
+      ),
+    );
+  }
+
+  /// Light color scheme definition
+  /// Defines all colors used in Material 3 design system
+  static const ColorScheme _lightColorScheme = ColorScheme.light(
+    primary: ThemeConstants.primaryColor, // Main brand color
+    onPrimary: Colors.white, // Text/icons on primary color
+    secondary: ThemeConstants.secondaryColor, // Secondary brand color
+    onSecondary: Colors.white, // Text/icons on secondary color
+    error: ThemeConstants.errorColor, // Error state color
+    onError: Colors.white, // Text/icons on error color
+    background: ThemeConstants.lightBackgroundColor, // Main background
+    onBackground: ThemeConstants.lightTextColor, // Text on background
+    surface: ThemeConstants.lightSurfaceColor, // Surface color (cards, sheets)
+    onSurface: ThemeConstants.lightTextColor, // Text on surface
+    surfaceVariant: Color(0xFFF5F5F5), // Variant surface color
+    onSurfaceVariant: Color(0xFF757575), // Text on variant surface
+  );
+
+  /// Text theme configuration for light mode
+  /// Defines typography hierarchy and text styles
+  static const TextTheme _lightTextTheme = TextTheme(
+    // Display text styles (largest)
+    displayLarge: TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.bold,
+      color: ThemeConstants.lightTextColor,
+      letterSpacing: -0.5,
+    ),
+    displayMedium: TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.bold,
+      color: ThemeConstants.lightTextColor,
+      letterSpacing: -0.25,
+    ),
+    
+    // Headline text styles
+    headlineLarge: TextStyle(
+      fontSize: 24,
+      fontWeight: FontWeight.w600,
+      color: ThemeConstants.lightTextColor,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+      color: ThemeConstants.lightTextColor,
+    ),
+    
+    // Title text styles
+    titleLarge: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w500,
+      color: ThemeConstants.lightTextColor,
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.w500,
+      color: ThemeConstants.lightTextColor,
+    ),
+    
+    // Body text styles (most common)
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      fontWeight: FontWeight.normal,
+      color: ThemeConstants.lightTextColor,
+      height: 1.5, // Line height for readability
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.normal,
+      color: ThemeConstants.lightTextColor,
+      height: 1.4,
+    ),
+    
+    // Label text styles (smallest)
+    labelLarge: TextStyle(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: ThemeConstants.lightTextColor,
+    ),
+    labelMedium: TextStyle(
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: Color(0xFF757575), // Slightly muted
+    ),
+  );
+
+  /// AppBar theme for light mode
+  /// Configures app bar appearance and behavior
+  static const AppBarTheme _lightAppBarTheme = AppBarTheme(
+    backgroundColor: ThemeConstants.lightSurfaceColor, // App bar background
+    foregroundColor: ThemeConstants.lightTextColor, // Text and icon color
+    elevation: 1, // Shadow depth
+    centerTitle: true, // Center the title
+    titleTextStyle: TextStyle(
+      fontSize: 18,
+      fontWeight: FontWeight.w600,
+      color: ThemeConstants.lightTextColor,
+    ),
+    iconTheme: IconThemeData(
+      color: ThemeConstants.lightTextColor, // Icon color
+      size: 24, // Icon size
+    ),
+  );
+
+  /// Bottom navigation bar theme
+  /// Configures bottom navigation appearance
+  static const BottomNavigationBarTheme _lightBottomNavTheme = BottomNavigationBarTheme(
+    backgroundColor: ThemeConstants.lightSurfaceColor,
+    selectedItemColor: ThemeConstants.primaryColor, // Active item color
+    unselectedItemColor: Color(0xFF757575), // Inactive item color
+    type: BottomNavigationBarType.fixed, // Fixed layout
+    elevation: 8, // Shadow elevation
+    selectedLabelStyle: TextStyle(fontWeight: FontWeight.w500),
+    unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+  );
+
+  /// Elevated button theme configuration
+  /// Defines primary button appearance
+  static final ElevatedButtonThemeData _lightElevatedButtonTheme = ElevatedButtonThemeData(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: ThemeConstants.primaryColor, // Button background
+      foregroundColor: Colors.white, // Text color
+      elevation: 2, // Shadow depth
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8), // Rounded corners
+      ),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+
+  /// Text button theme configuration
+  /// Defines secondary button appearance
+  static final TextButtonThemeData _lightTextButtonTheme = TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: ThemeConstants.primaryColor, // Text color
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+
+  /// Outlined button theme configuration
+  /// Defines tertiary button appearance
+  static final OutlinedButtonThemeData _lightOutlinedButtonTheme = OutlinedButtonThemeData(
+    style: OutlinedButton.styleFrom(
+      foregroundColor: ThemeConstants.primaryColor, // Text and border color
+      side: const BorderSide(color: ThemeConstants.primaryColor, width: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      textStyle: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+      ),
+    ),
+  );
+
+  /// Input decoration theme for text fields
+  /// Standardizes form input appearance
+  static const InputDecorationTheme _lightInputDecorationTheme = InputDecorationTheme(
+    border: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+    ),
+    enabledBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderSide: BorderSide(color: ThemeConstants.primaryColor, width: 2),
+    ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.all(Radius.circular(8)),
+      borderSide: BorderSide(color: ThemeConstants.errorColor),
+    ),
+    filled: true, // Fill background
+    fillColor: Color(0xFFFAFAFA), // Light fill color
+    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    labelStyle: TextStyle(color: Color(0xFF757575)),
+    hintStyle: TextStyle(color: Color(0xFFBDBDBD)),
+  );
+
+  /// Card theme configuration
+  /// Defines card component appearance
+  static const CardTheme _lightCardTheme = CardTheme(
+    color: ThemeConstants.lightSurfaceColor, // Card background
+    elevation: 2, // Shadow depth
+    margin: EdgeInsets.all(8), // Default margin
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(12)), // Rounded corners
+    ),
+  );
+
+  /// Floating action button theme
+  /// Configures FAB appearance
+  static const FloatingActionButtonThemeData _lightFABTheme = FloatingActionButtonThemeData(
+    backgroundColor: ThemeConstants.primaryColor, // FAB background
+    foregroundColor: Colors.white, // Icon color
+    elevation: 6, // Shadow depth
+    shape: CircleBorder(), // Circular shape
+  );
+
+  /// Icon theme configuration
+  /// Sets default icon appearance
+  static const IconThemeData _lightIconTheme = IconThemeData(
+    color: ThemeConstants.lightTextColor, // Default icon color
+    size: 24, // Default icon size
+  );
+
+  /// Divider theme configuration
+  /// Defines separator line appearance
+  static const DividerThemeData _lightDividerTheme = DividerThemeData(
+    color: Color(0xFFE0E0E0), // Divider color
+    thickness: 1, // Line thickness
+    space: 16, // Space around divider
+  );
+}
+```
+
+## presentation/themes/dark_theme.dart
+
+**What issue it solves/Benefits of separation:**
+- ✅ Provides a complete dark theme configuration separated from light theme
+- ✅ Ensures consistent dark mode styling with proper contrast ratios
+- ✅ Makes it easy to modify dark theme without affecting light theme
+- ✅ Follows Material Design 3 guidelines for dark themes
+- ✅ Improves user experience in low-light conditions and saves battery on OLED screens
+
+```dart
+// Dark theme configuration for the application
+// This file contains all the styling for dark mode, including colors,
+// typography, and component-specific theming with proper contrast ratios
+import 'package:flutter/material.dart';
+import '../../core/constants/theme_constants.dart';
+
+/// DarkTheme class provides the complete dark theme configuration
+/// It defines colors, typography, and component themes for dark mode
+class DarkTheme {
+  // Private constructor to prevent instantiation
+  DarkTheme._();
+
+  /// Primary color scheme for dark theme
+  /// These colors follow Material Design 3 guidelines for dark themes
+  static const ColorScheme _darkColorScheme = ColorScheme.dark(
+    // Primary colors - main brand colors (lighter variants for dark theme)
+    primary: Color(0xFF90CAF9), // Blue 200
+    onPrimary: Color(0xFF0D47A1), // Blue 900
+    primaryContainer: Color(0xFF1565C0), // Blue 800
+    onPrimaryContainer: Color(0xFFE3F2FD), // Blue 50
+    
+    // Secondary colors - accent colors (lighter variants)
+    secondary: Color(0xFF80CBC4), // Teal 200
+    onSecondary: Color(0xFF004D40), // Teal 900
+    secondaryContainer: Color(0xFF00695C), // Teal 800
+    onSecondaryContainer: Color(0xFFE0F2F1), // Teal 50
+    
+    // Tertiary colors - additional accent (lighter variants)
+    tertiary: Color(0xFFFFB74D), // Orange 300
+    onTertiary: Color(0xFFE65100), // Orange 900
+    tertiaryContainer: Color(0xFFFF8F00), // Orange 800
+    onTertiaryContainer: Color(0xFFFFF3E0), // Orange 50
+    
+    // Error colors (lighter variants for dark theme)
+    error: Color(0xFFEF5350), // Red 400
+    onError: Color(0xFFB71C1C), // Red 900
+    errorContainer: Color(0xFFD32F2F), // Red 700
+    onErrorContainer: Color(0xFFFFEBEE), // Red 50
+    
+    // Background colors (dark variants)
+    background: Color(0xFF121212), // Very dark grey
+    onBackground: Color(0xFFE0E0E0), // Light grey
+    
+    // Surface colors (dark variants)
+    surface: Color(0xFF1E1E1E), // Dark grey
+    onSurface: Color(0xFFE0E0E0), // Light grey
+    surfaceVariant: Color(0xFF424242), // Grey 800
+    onSurfaceVariant: Color(0xFFBDBDBD), // Grey 400
+    
+    // Outline colors (adjusted for dark theme)
+    outline: Color(0xFF757575), // Grey 600
+    outlineVariant: Color(0xFF424242), // Grey 800
+    
+    // Other colors
+    shadow: Colors.black87,
+    scrim: Colors.black87,
+    inverseSurface: Color(0xFFE0E0E0), // Light grey
+    onInverseSurface: Color(0xFF121212), // Very dark grey
+    inversePrimary: Color(0xFF1976D2), // Blue 700
+  );
+
+  /// Text theme for dark mode
+  /// Defines typography hierarchy with appropriate colors for dark backgrounds
+  static const TextTheme _darkTextTheme = TextTheme(
+    // Display styles - largest text
+    displayLarge: TextStyle(
+      fontSize: 57.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: -0.25,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    displayMedium: TextStyle(
+      fontSize: 45.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    displaySmall: TextStyle(
+      fontSize: 36.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    
+    // Headline styles - large text
+    headlineLarge: TextStyle(
+      fontSize: 32.0,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 28.0,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    headlineSmall: TextStyle(
+      fontSize: 24.0,
+      fontWeight: FontWeight.w600,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    
+    // Title styles - medium text
+    titleLarge: TextStyle(
+      fontSize: 22.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.0,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.15,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    titleSmall: TextStyle(
+      fontSize: 14.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    
+    // Body styles - regular text
+    bodyLarge: TextStyle(
+      fontSize: 16.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.5,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.25,
+      color: Color(0xFFBDBDBD),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12.0,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.4,
+      color: Color(0xFF9E9E9E),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    
+    // Label styles - small text
+    labelLarge: TextStyle(
+      fontSize: 14.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      color: Color(0xFFE0E0E0),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    labelMedium: TextStyle(
+      fontSize: 12.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: Color(0xFFBDBDBD),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+    labelSmall: TextStyle(
+      fontSize: 11.0,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: Color(0xFF9E9E9E),
+      fontFamily: ThemeConstants.fontFamily,
+    ),
+  );
+
+  /// Complete dark theme configuration
+  /// This combines all theme elements into a single ThemeData object for dark mode
+  static ThemeData get theme {
+    return ThemeData(
+      // Use Material 3 design system
+      useMaterial3: true,
+      
+      // Set brightness to dark
+      brightness: Brightness.dark,
+      
+      // Color scheme
+      colorScheme: _darkColorScheme,
+      
+      // Typography
+      textTheme: _darkTextTheme,
+      
+      // AppBar theme
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Color(0xFF1E1E1E),
+        foregroundColor: Color(0xFFE0E0E0),
+        elevation: 4.0,
+        centerTitle: true,
+        titleTextStyle: TextStyle(
+          fontSize: 20.0,
+          fontWeight: FontWeight.w600,
+          color: Color(0xFFE0E0E0),
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+        iconTheme: IconThemeData(
+          color: Color(0xFFE0E0E0),
+          size: 24.0,
+        ),
+      ),
+      
+      // Card theme
+      cardTheme: CardTheme(
+        color: const Color(0xFF1E1E1E),
+        elevation: 2.0,
+        margin: const EdgeInsets.all(8.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        ),
+      ),
+      
+      // Button themes
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: _darkColorScheme.primary,
+          foregroundColor: _darkColorScheme.onPrimary,
+          elevation: 2.0,
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.w500,
+            fontFamily: ThemeConstants.fontFamily,
+          ),
+        ),
+      ),
+      
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: _darkColorScheme.primary,
+          side: BorderSide(color: _darkColorScheme.primary),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.w500,
+            fontFamily: ThemeConstants.fontFamily,
+          ),
+        ),
+      ),
+      
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: _darkColorScheme.primary,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 16.0,
+            fontWeight: FontWeight.w500,
+            fontFamily: ThemeConstants.fontFamily,
+          ),
+        ),
+      ),
+      
+      // Input decoration theme
+      inputDecorationTheme: InputDecorationTheme(
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          borderSide: const BorderSide(color: Color(0xFF424242)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          borderSide: const BorderSide(color: Color(0xFF424242)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          borderSide: const BorderSide(color: Color(0xFF90CAF9), width: 2.0),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          borderSide: const BorderSide(color: Color(0xFFEF5350)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+          borderSide: const BorderSide(color: Color(0xFFEF5350), width: 2.0),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+        hintStyle: const TextStyle(
+          color: Color(0xFF757575),
+          fontSize: 16.0,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+        labelStyle: const TextStyle(
+          color: Color(0xFF9E9E9E),
+          fontSize: 16.0,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+      ),
+      
+      // Icon theme
+      iconTheme: const IconThemeData(
+        color: Color(0xFFBDBDBD),
+        size: 24.0,
+      ),
+      
+      // Floating action button theme
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: Color(0xFF90CAF9),
+        foregroundColor: Color(0xFF0D47A1),
+        elevation: 6.0,
+        shape: CircleBorder(),
+      ),
+      
+      // Bottom navigation bar theme
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: Color(0xFF1E1E1E),
+        selectedItemColor: Color(0xFF90CAF9),
+        unselectedItemColor: Color(0xFF9E9E9E),
+        type: BottomNavigationBarType.fixed,
+        elevation: 8.0,
+        selectedLabelStyle: TextStyle(
+          fontSize: 12.0,
+          fontWeight: FontWeight.w500,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+        unselectedLabelStyle: TextStyle(
+          fontSize: 12.0,
+          fontWeight: FontWeight.w400,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+      ),
+      
+      // Divider theme
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFF424242),
+        thickness: 1.0,
+        space: 1.0,
+      ),
+      
+      // Chip theme
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFF424242),
+        selectedColor: _darkColorScheme.primary,
+        disabledColor: const Color(0xFF2E2E2E),
+        labelStyle: const TextStyle(
+          color: Color(0xFFE0E0E0),
+          fontSize: 14.0,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+        secondaryLabelStyle: const TextStyle(
+          color: Color(0xFF0D47A1),
+          fontSize: 14.0,
+          fontFamily: ThemeConstants.fontFamily,
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        elevation: 1.0,
+      ),
+      
+      // Scaffold background color
+      scaffoldBackgroundColor: const Color(0xFF121212),
+      
+      // Background color
+      backgroundColor: const Color(0xFF121212),
+      
+      // Primary color
+      primaryColor: const Color(0xFF90CAF9),
+      
+      // Accent color (deprecated but still used by some widgets)
+      accentColor: const Color(0xFF80CBC4),
+      
+      // Visual density
+      visualDensity: VisualDensity.adaptivePlatformDensity,
+      
+      // Material tap target size
+      materialTapTargetSize: MaterialTapTargetSize.padded,
+      
+      // Page transitions
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+}
+```
+
+## shared/enums/app_state.dart
+
+**What issue it solves/Benefits of separation:**
+- ✅ Centralizes all application state definitions in one place
+- ✅ Provides type-safe state management with clear naming conventions
+- ✅ Makes it easy to track and debug application states
+- ✅ Enables consistent state handling across different parts of the app
+- ✅ Reduces bugs by preventing invalid state assignments
+
+```dart
+// Application state enums for consistent state management
+// This file defines all possible states that the application can be in
+// It helps maintain consistency across different parts of the app
+enum AppState {
+  // Initial state when app is starting up
+  initial,
+  
+  // Loading state when performing operations
+  loading,
+  
+  // Success state when operations complete successfully
+  success,
+  
+  // Error state when operations fail
+  error,
+  
+  // Empty state when no data is available
+  empty,
+  
+  // Offline state when network is unavailable
+  offline,
+  
+  // Authenticated state when user is logged in
+  authenticated,
+  
+  // Unauthenticated state when user is not logged in
+  unauthenticated,
+}
+
+/// Network connection states
+enum NetworkState {
+  // Connected to the internet
+  connected,
+  
+  // Disconnected from the internet
+  disconnected,
+  
+  // Connection status unknown
+  unknown,
+}
+
+/// Data loading states for more granular control
+enum LoadingState {
+  // Initial state before any loading
+  idle,
+  
+  // Currently loading data
+  loading,
+  
+  // Loading more data (pagination)
+  loadingMore,
+  
+  // Refreshing existing data
+  refreshing,
+  
+  // Data loaded successfully
+  loaded,
+  
+  // Loading failed with error
+  error,
+}
+
+/// Authentication states
+enum AuthState {
+  // Initial state
+  initial,
+  
+  // Currently authenticating
+  authenticating,
+  
+  // User is authenticated
+  authenticated,
+  
+  // User is not authenticated
+  unauthenticated,
+  
+  // Authentication failed
+  authenticationFailed,
+  
+  // User session expired
+  sessionExpired,
+}
+
+/// Theme mode states
+enum ThemeState {
+  // Light theme
+  light,
+  
+  // Dark theme
+  dark,
+  
+  // Follow system theme
+  system,
+}
+
+/// Form validation states
+enum ValidationState {
+  // Initial state, not validated yet
+  initial,
+  
+  // Currently validating
+  validating,
+  
+  // Validation passed
+  valid,
+  
+  // Validation failed
+  invalid,
+}
+
+/// Upload/Download states
+enum TransferState {
+  // Initial state
+  idle,
+  
+  // Transfer in progress
+  inProgress,
+  
+  // Transfer completed successfully
+  completed,
+  
+  // Transfer failed
+  failed,
+  
+  // Transfer cancelled
+  cancelled,
+  
+  // Transfer paused
+  paused,
+}
+
+/// Search states
+enum SearchState {
+  // Initial state, no search performed
+  initial,
+  
+  // Currently searching
+  searching,
+  
+  // Search completed with results
+  completed,
+  
+  // Search completed but no results found
+  empty,
+  
+  // Search failed
+  error,
+}
+
+/// Extension methods for AppState enum to provide additional functionality
+extension AppStateExtension on AppState {
+  /// Returns true if the current state is loading
+  bool get isLoading => this == AppState.loading;
+  
+  /// Returns true if the current state is success
+  bool get isSuccess => this == AppState.success;
+  
+  /// Returns true if the current state is error
+  bool get isError => this == AppState.error;
+  
+  /// Returns true if the current state is empty
+  bool get isEmpty => this == AppState.empty;
+  
+  /// Returns true if the current state is offline
+  bool get isOffline => this == AppState.offline;
+  
+  /// Returns true if the user is authenticated
+  bool get isAuthenticated => this == AppState.authenticated;
+  
+  /// Returns true if the user is unauthenticated
+  bool get isUnauthenticated => this == AppState.unauthenticated;
+  
+  /// Returns a human-readable description of the state
+  String get description {
+    switch (this) {
+      case AppState.initial:
+        return 'Initializing application';
+      case AppState.loading:
+        return 'Loading data';
+      case AppState.success:
+        return 'Operation completed successfully';
+      case AppState.error:
+        return 'An error occurred';
+      case AppState.empty:
+        return 'No data available';
+      case AppState.offline:
+        return 'No internet connection';
+      case AppState.authenticated:
+        return 'User is logged in';
+      case AppState.unauthenticated:
+        return 'User is not logged in';
+    }
+  }
+}
+
+/// Extension methods for LoadingState enum
+extension LoadingStateExtension on LoadingState {
+  /// Returns true if any loading is in progress
+  bool get isLoading => [
+    LoadingState.loading,
+    LoadingState.loadingMore,
+    LoadingState.refreshing,
+  ].contains(this);
+  
+  /// Returns true if data is loaded successfully
+  bool get isLoaded => this == LoadingState.loaded;
+  
+  /// Returns true if loading failed
+  bool get hasError => this == LoadingState.error;
+}
+
+/// Extension methods for AuthState enum
+extension AuthStateExtension on AuthState {
+  /// Returns true if user is authenticated
+  bool get isAuthenticated => this == AuthState.authenticated;
+  
+  /// Returns true if authentication is in progress
+  bool get isAuthenticating => this == AuthState.authenticating;
+  
+  /// Returns true if authentication failed
+  bool get hasAuthError => [
+    AuthState.authenticationFailed,
+    AuthState.sessionExpired,
+  ].contains(this);
+}
+```
+
+## shared/enums/user_role.dart
+
+**What issue it solves/Benefits of separation:**
+- ✅ Defines user roles and permissions in a type-safe manner
+- ✅ Centralizes role-based access control logic
+- ✅ Makes it easy to check user permissions throughout the app
+- ✅ Provides extensibility for adding new roles and permissions
+- ✅ Prevents role-related bugs with clear enum definitions
+
+```dart
+// User role enums for role-based access control
+// This file defines different user roles and their associated permissions
+// It helps implement proper authorization throughout the application
+
+/// Main user roles in the application
+enum UserRole {
+  // Guest user with limited access
+  guest,
+  
+  // Regular user with standard access
+  user,
+  
+  // Premium user with additional features
+  premium,
+  
+  // Moderator with content management access
+  moderator,
+  
+  // Administrator with full access
+  admin,
+  
+  // Super administrator with system-level access
+  superAdmin,
+}
+
+/// Specific permissions that can be granted to users
+enum Permission {
+  // Content permissions
+  readContent,
+  writeContent,
+  editContent,
+  deleteContent,
+  publishContent,
+  
+  // User management permissions
+  viewUsers,
+  editUsers,
+  deleteUsers,
+  manageRoles,
+  
+  // Administrative permissions
+  accessAdminPanel,
+  manageSettings,
+  viewAnalytics,
+  manageSystem,
+  
+  // Premium features
+  accessPremiumFeatures,
+  unlimitedAccess,
+  prioritySupport,
+  
+  // Moderation permissions
+  moderateContent,
+  banUsers,
+  handleReports,
+}
+
+/// User account status
+enum AccountStatus {
+  // Account is active and in good standing
+  active,
+  
+  // Account is temporarily suspended
+  suspended,
+  
+  // Account is permanently banned
+  banned,
+  
+  // Account is pending verification
+  pending,
+  
+  // Account is inactive/dormant
+  inactive,
+  
+  // Account is deleted
+  deleted,
+}
+
+/// Subscription types for premium features
+enum SubscriptionType {
+  // Free tier
+  free,
+  
+  // Basic paid subscription
+  basic,
+  
+  // Premium paid subscription
+  premium,
+  
+  // Professional subscription
+  professional,
+  
+  // Enterprise subscription
+  enterprise,
+}
+
+/// Extension methods for UserRole enum to provide additional functionality
+extension UserRoleExtension on UserRole {
+  /// Returns the display name for the user role
+  String get displayName {
+    switch (this) {
+      case UserRole.guest:
+        return 'Guest';
+      case UserRole.user:
+        return 'User';
+      case UserRole.premium:
+        return 'Premium User';
+      case UserRole.moderator:
+        return 'Moderator';
+      case UserRole.admin:
+        return 'Administrator';
+      case UserRole.superAdmin:
+        return 'Super Administrator';
+    }
+  }
+  
+  /// Returns the hierarchy level of the role (higher number = more privileges)
+  int get hierarchyLevel {
+    switch (this) {
+      case UserRole.guest:
+        return 0;
+      case UserRole.user:
+        return 1;
+      case UserRole.premium:
+        return 2;
+      case UserRole.moderator:
+        return 3;
+      case UserRole.admin:
+        return 4;
+      case UserRole.superAdmin:
+        return 5;
+    }
+  }
+  
+  /// Returns the list of permissions associated with this role
+  List<Permission> get permissions {
+    switch (this) {
+      case UserRole.guest:
+        return [
+          Permission.readContent,
+        ];
+      case UserRole.user:
+        return [
+          Permission.readContent,
+          Permission.writeContent,
+          Permission.editContent,
+        ];
+      case UserRole.premium:
+        return [
+          Permission.readContent,
+          Permission.writeContent,
+          Permission.editContent,
+          Permission.accessPremiumFeatures,
+          Permission.unlimitedAccess,
+          Permission.prioritySupport,
+        ];
+      case UserRole.moderator:
+        return [
+          Permission.readContent,
+          Permission.writeContent,
+          Permission.editContent,
+          Permission.deleteContent,
+          Permission.moderateContent,
+          Permission.handleReports,
+          Permission.viewUsers,
+        ];
+      case UserRole.admin:
+        return [
+          Permission.readContent,
+          Permission.writeContent,
+          Permission.editContent,
+          Permission.deleteContent,
+          Permission.publishContent,
+          Permission.moderateContent,
+          Permission.handleReports,
+          Permission.viewUsers,
+          Permission.editUsers,
+          Permission.manageRoles,
+          Permission.accessAdminPanel,
+          Permission.viewAnalytics,
+        ];
+      case UserRole.superAdmin:
+        return Permission.values; // All permissions
+    }
+  }
+  
+  /// Checks if this role has a specific permission
+  bool hasPermission(Permission permission) {
+    return permissions.contains(permission);
+  }
+  
+  /// Checks if this role has higher or equal hierarchy than another role
+  bool hasHigherOrEqualHierarchy(UserRole otherRole) {
+    return hierarchyLevel >= otherRole.hierarchyLevel;
+  }
+  
+  /// Returns true if this is an administrative role
+  bool get isAdmin {
+    return [UserRole.admin, UserRole.superAdmin].contains(this);
+  }
+  
+  /// Returns true if this is a premium role
+  bool get isPremium {
+    return [UserRole.premium, UserRole.moderator, UserRole.admin, UserRole.superAdmin]
+        .contains(this);
+  }
+  
+  /// Returns true if this role can moderate content
+  bool get canModerate {
+    return [UserRole.moderator, UserRole.admin, UserRole.superAdmin]
+        .contains(this);
+  }
+}
+
+/// Extension methods for Permission enum
+extension PermissionExtension on Permission {
+  /// Returns the display name for the permission
+  String get displayName {
+    switch (this) {
+      case Permission.readContent:
+        return 'Read Content';
+      case Permission.writeContent:
+        return 'Write Content';
+      case Permission.editContent:
+        return 'Edit Content';
+      case Permission.deleteContent:
+        return 'Delete Content';
+      case Permission.publishContent:
+        return 'Publish Content';
+      case Permission.viewUsers:
+        return 'View Users';
+      case Permission.editUsers:
+        return 'Edit Users';
+      case Permission.deleteUsers:
+        return 'Delete Users';
+      case Permission.manageRoles:
+        return 'Manage Roles';
+      case Permission.accessAdminPanel:
+        return 'Access Admin Panel';
+      case Permission.manageSettings:
+        return 'Manage Settings';
+      case Permission.viewAnalytics:
+        return 'View Analytics';
+      case Permission.manageSystem:
+        return 'Manage System';
+      case Permission.accessPremiumFeatures:
+        return 'Access Premium Features';
+      case Permission.unlimitedAccess:
+        return 'Unlimited Access';
+      case Permission.prioritySupport:
+        return 'Priority Support';
+      case Permission.moderateContent:
+        return 'Moderate Content';
+      case Permission.banUsers:
+        return 'Ban Users';
+      case Permission.handleReports:
+        return 'Handle Reports';
+    }
+  }
+  
+  /// Returns the description of what this permission allows
+  String get description {
+    switch (this) {
+      case Permission.readContent:
+        return 'Allows viewing and reading content';
+      case Permission.writeContent:
+        return 'Allows creating new content';
+      case Permission.editContent:
+        return 'Allows editing existing content';
+      case Permission.deleteContent:
+        return 'Allows deleting content';
+      case Permission.publishContent:
+        return 'Allows publishing content for public viewing';
+      case Permission.viewUsers:
+        return 'Allows viewing user profiles and information';
+      case Permission.editUsers:
+        return 'Allows editing user profiles and information';
+      case Permission.deleteUsers:
+        return 'Allows deleting user accounts';
+      case Permission.manageRoles:
+        return 'Allows assigning and managing user roles';
+      case Permission.accessAdminPanel:
+        return 'Allows access to the administrative interface';
+      case Permission.manageSettings:
+        return 'Allows modifying application settings';
+      case Permission.viewAnalytics:
+        return 'Allows viewing analytics and reports';
+      case Permission.manageSystem:
+        return 'Allows system-level management and configuration';
+      case Permission.accessPremiumFeatures:
+        return 'Allows access to premium-only features';
+      case Permission.unlimitedAccess:
+        return 'Removes limitations on usage and access';
+      case Permission.prioritySupport:
+        return 'Provides priority customer support';
+      case Permission.moderateContent:
+        return 'Allows moderating and reviewing content';
+      case Permission.banUsers:
+        return 'Allows banning and suspending users';
+      case Permission.handleReports:
+        return 'Allows managing user reports and complaints';
+    }
+  }
+}
+
+/// Extension methods for AccountStatus enum
+extension AccountStatusExtension on AccountStatus {dart
+// Main theme configuration that orchestrates light and dark themes
+// This file acts as the central hub for all theme-related configurations
+import 'package:flutter/material.dart';
+import 'light_theme.dart';
+import 'dark_theme.dart';
+import '../../core/constants/theme_constants.dart';
+
+/// AppTheme class manages the overall theme configuration for the application
+/// It provides static methods to get light and dark themes, and utility methods
+/// for accessing theme-specific properties
+class AppTheme {
+  // Private constructor to prevent instantiation
+  // This class is designed to be used as a static utility class
+  AppTheme._();
+
+  /// Returns the light theme configuration
+  /// This method creates and returns a complete ThemeData object for light mode
+  static ThemeData get lightTheme {
+    return LightTheme.theme;
+  }
+
+  /// Returns the dark theme configuration
+  /// This method creates and returns a complete ThemeData object for dark mode
+  static ThemeData get darkTheme {
+    return DarkTheme.theme;
+  }
+
+  /// Gets the current theme mode based on system settings or user preference
+  /// This can be extended to include user preference from shared preferences
+  static ThemeMode get themeMode {
+    // For now, we follow system theme, but this can be customized
+    // to read from user preferences stored in local storage
+    return ThemeMode.system;
+  }
+
+  /// Utility method to get text theme from current context
+  /// This provides easy access to text styles throughout the app
+  static TextTheme getTextTheme(BuildContext context) {
+    return Theme.of(context).textTheme;
+  }
+
+  /// Utility method to get color scheme from current context
+  /// This provides easy access to color palette throughout the app
+  static ColorScheme getColorScheme(BuildContext context) {
+    return Theme.of(context).colorScheme;
+  }
+
+  /// Checks if the current theme is dark mode
+  /// Useful for conditional rendering based on theme
+  static bool isDarkMode(BuildContext context) {
+    return Theme.of(context).brightness == Brightness.dark;
+  }
+
+  /// Gets the primary color from current theme
+  /// Provides quick access to the main brand color
+  static Color getPrimaryColor(BuildContext context) {
+    return Theme.of(context).primaryColor;
+  }
+
+  /// Gets the background color from current theme
+  /// Useful for setting consistent background colors
+  static Color getBackgroundColor(BuildContext context) {
+    return Theme.of(context).scaffoldBackgroundColor;
+  }
+
+  /// Gets the card color from current theme
+  /// Ensures consistent card styling across the app
+  static Color getCardColor(BuildContext context) {
+    return Theme.of(context).cardColor;
+  }
+
+  /// Gets the error color from current theme
+  /// Provides consistent error state styling
+  static Color getErrorColor(BuildContext context) {
+    return Theme.of(context).colorScheme.error;
+  }
+
+  /// Gets the success color from theme constants
+  /// Since Flutter doesn't have a built-in success color, we use our custom one
+  static Color getSuccessColor(BuildContext context) {
+    return isDarkMode(context) 
+        ? ThemeConstants.successColorDark 
+        : ThemeConstants.successColorLight;
+  }
+
+  /// Gets the warning color from theme constants
+  /// Since Flutter doesn't have a built-in warning color, we use our custom one
+  static Color getWarningColor(BuildContext context) {
+    return isDarkMode(context) 
+        ? ThemeConstants.warningColorDark 
+        : ThemeConstants.warningColorLight;
+  }
+
+  /// Creates a custom TextStyle with theme-aware colors
+  /// This method helps create consistent text styles throughout the app
+  static TextStyle createTextStyle({
+    required BuildContext context,
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return TextStyle(
+      fontSize: fontSize ?? 14.0,
+      fontWeight: fontWeight ?? FontWeight.normal,
+      color: color ?? getTextColor(context),
+      letterSpacing: letterSpacing,
+      height: height,
+      fontFamily: ThemeConstants.fontFamily,
+    );
+  }
+
+  /// Gets the appropriate text color based on current theme
+  /// Ensures text is readable in both light and dark modes
+  static Color getTextColor(BuildContext context) {
+    return Theme.of(context).textTheme.bodyLarge?.color ?? 
+           (isDarkMode(context) ? Colors.white : Colors.black);
+  }
+
+  /// Gets the appropriate secondary text color based on current theme
+  /// Used for less prominent text elements
+  static Color getSecondaryTextColor(BuildContext context) {
+    return Theme.of(context).textTheme.bodyMedium?.color ?? 
+           (isDarkMode(context) ? Colors.white70 : Colors.black54);
+  }
+
+  /// Creates a BoxDecoration with theme-aware styling
+  /// Useful for creating consistent container decorations
+  static BoxDecoration createBoxDecoration({
+    required BuildContext context,
+    Color? color,
+    double borderRadius = 8.0,
+    Color? borderColor,
+    double borderWidth = 1.0,
+    List<BoxShadow>? boxShadow,
+  }) {
+    return BoxDecoration(
+      color: color ?? getCardColor(context),
+      borderRadius: BorderRadius.circular(borderRadius),
+      border: borderColor != null 
+          ? Border.all(color: borderColor, width: borderWidth)
+          : null,
+      boxShadow: boxShadow ?? [
+        BoxShadow(
+          color: isDarkMode(context) 
+              ? Colors.black26 
+              : Colors.grey.withOpacity(0.1),
+          blurRadius: 4.0,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
+
+  /// Creates an InputDecoration with consistent theme styling
+  /// Ensures all text fields have the same look and feel
+  static InputDecoration createInputDecoration({
+    required BuildContext context,
+    String? labelText,
+    String? hintText,
+    IconData? prefixIcon,
+    IconData? suffixIcon,
+    VoidCallback? onSuffixIconPressed,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      hintText: hintText,
+      prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
+      suffixIcon: suffixIcon != null 
+          ? IconButton(
+              icon: Icon(suffixIcon),
+              onPressed: onSuffixIconPressed,
+            )
+          : null,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: isDarkMode(context) 
+              ? Colors.grey.shade600 
+              : Colors.grey.shade300,
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getPrimaryColor(context),
+          width: 2.0,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getErrorColor(context),
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+        borderSide: BorderSide(
+          color: getErrorColor(context),
+          width: 2.0,
+        ),
+      ),
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+        vertical: 12.0,
+      ),
+    );
+  }
+
+  /// Creates a ButtonStyle with consistent theme styling
+  /// Ensures all buttons have the same look and feel
+  static ButtonStyle createButtonStyle({
+    required BuildContext context,
+    Color? backgroundColor,
+    Color? foregroundColor,
+    double? elevation,
+    EdgeInsetsGeometry? padding,
+    Size? minimumSize,
+  }) {
+    return ElevatedButton.styleFrom(
+      backgroundColor: backgroundColor ?? getPrimaryColor(context),
+      foregroundColor: foregroundColor ?? Colors.white,
+      elevation: elevation ?? 2.0,
+      padding: padding ?? const EdgeInsets.symmetric(
+        horizontal: 24.0,
+        vertical: 12.0,
+      ),
+      minimumSize: minimumSize ?? const Size(100, 44),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+    );
+  }
+
+  /// Creates an AppBar theme with consistent styling
+  /// Ensures all app bars have the same look and feel
+  static AppBarTheme createAppBarTheme(BuildContext context) {
+    return AppBarTheme(
+      backgroundColor: getPrimaryColor(context),
+      foregroundColor: Colors.white,
+      elevation: 4.0,
+      centerTitle: true,
+      titleTextStyle: createTextStyle(
+        context: context,
+        fontSize: 20.0,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+      iconTheme: const IconThemeData(
+        color: Colors.white,
+        size: 24.0,
+      ),
+    );
+  }
+
+  /// Creates a Card theme with consistent styling
+  /// Ensures all cards have the same look and feel
+  static CardTheme createCardTheme(BuildContext context) {
+    return CardTheme(
+      color: getCardColor(context),
+      elevation: 2.0,
+      margin: const EdgeInsets.all(8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(ThemeConstants.borderRadius),
+      ),
+    );
+  }
+}
+```
+
+
+## shared/mixins/validation_mixin.dart
+
+**What issue it solves**: Provides reusable validation logic across different controllers and forms. Eliminates code duplication and ensures consistent validation rules throughout the application.
+
+**Benefits**:
+- Code reusability across multiple controllers
+- Consistent validation rules
+- Easy to maintain and update validation logic
+- Separation of validation concerns from business logic
+
+```dart
+/// Validation mixin that provides common validation methods
+/// This mixin can be used by controllers to validate user input
+/// without duplicating validation logic across different classes
+mixin ValidationMixin {
+  
+  /// Validates email format using regular expression
+  /// Returns error message if invalid, null if valid
+  /// 
+  /// Example usage:
+  /// ```dart
+  /// String? error = validateEmail('user@example.com');
+  /// if (error != null) {
+  ///   // Handle validation error
+  /// }
+  /// ```
+  String? validateEmail(String? email) {
+    // Check if email is null or empty
+    if (email == null || email.trim().isEmpty) {
+      return 'Email is required';
+    }
+    
+    // Regular expression for email validation
+    // Matches standard email format: username@domain.extension
+    final emailRegExp = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    
+    // Check if email matches the pattern
+    if (!emailRegExp.hasMatch(email.trim())) {
+      return 'Please enter a valid email address';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates password strength and requirements
+  /// Returns error message if invalid, null if valid
+  /// 
+  /// Password requirements:
+  /// - Minimum 8 characters
+  /// - At least one uppercase letter
+  /// - At least one lowercase letter
+  /// - At least one number
+  /// - At least one special character
+  String? validatePassword(String? password) {
+    // Check if password is null or empty
+    if (password == null || password.isEmpty) {
+      return 'Password is required';
+    }
+    
+    // Check minimum length
+    if (password.length < 8) {
+      return 'Password must be at least 8 characters long';
+    }
+    
+    // Check for uppercase letter
+    if (!password.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    
+    // Check for lowercase letter
+    if (!password.contains(RegExp(r'[a-z]'))) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    
+    // Check for number
+    if (!password.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
+    }
+    
+    // Check for special character
+    if (!password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'))) {
+      return 'Password must contain at least one special character';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates phone number format
+  /// Accepts various phone number formats
+  /// Returns error message if invalid, null if valid
+  String? validatePhoneNumber(String? phoneNumber) {
+    // Check if phone number is null or empty
+    if (phoneNumber == null || phoneNumber.trim().isEmpty) {
+      return 'Phone number is required';
+    }
+    
+    // Remove all non-digit characters for validation
+    final digitsOnly = phoneNumber.replaceAll(RegExp(r'[^\d]'), '');
+    
+    // Check if phone number has valid length (10-15 digits)
+    if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+      return 'Please enter a valid phone number';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates required text fields
+  /// Returns error message if empty, null if valid
+  /// 
+  /// Parameters:
+  /// - value: The text to validate
+  /// - fieldName: Name of the field for error message
+  /// - minLength: Minimum required length (optional)
+  String? validateRequired(String? value, String fieldName, {int? minLength}) {
+    // Check if value is null or empty
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName is required';
+    }
+    
+    // Check minimum length if specified
+    if (minLength != null && value.trim().length < minLength) {
+      return '$fieldName must be at least $minLength characters long';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates numeric input
+  /// Returns error message if invalid, null if valid
+  /// 
+  /// Parameters:
+  /// - value: The text to validate as number
+  /// - fieldName: Name of the field for error message
+  /// - min: Minimum allowed value (optional)
+  /// - max: Maximum allowed value (optional)
+  String? validateNumber(String? value, String fieldName, {double? min, double? max}) {
+    // Check if value is null or empty
+    if (value == null || value.trim().isEmpty) {
+      return '$fieldName is required';
+    }
+    
+    // Try to parse as double
+    final number = double.tryParse(value.trim());
+    if (number == null) {
+      return 'Please enter a valid number for $fieldName';
+    }
+    
+    // Check minimum value
+    if (min != null && number < min) {
+      return '$fieldName must be at least $min';
+    }
+    
+    // Check maximum value
+    if (max != null && number > max) {
+      return '$fieldName must not exceed $max';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates age input
+  /// Returns error message if invalid, null if valid
+  String? validateAge(String? age) {
+    // Use number validation with age-specific constraints
+    final numberError = validateNumber(age, 'Age', min: 1, max: 150);
+    if (numberError != null) {
+      return numberError;
+    }
+    
+    // Additional age-specific validation
+    final ageValue = int.parse(age!);
+    if (ageValue < 13) {
+      return 'You must be at least 13 years old';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates URL format
+  /// Returns error message if invalid, null if valid
+  String? validateUrl(String? url) {
+    // Check if URL is null or empty
+    if (url == null || url.trim().isEmpty) {
+      return 'URL is required';
+    }
+    
+    // Try to parse as URI
+    try {
+      final uri = Uri.parse(url.trim());
+      
+      // Check if URI has scheme (http/https)
+      if (!uri.hasScheme || (!uri.scheme.startsWith('http') && !uri.scheme.startsWith('https'))) {
+        return 'Please enter a valid URL starting with http:// or https://';
+      }
+      
+      // Check if URI has host
+      if (!uri.hasAuthority || uri.host.isEmpty) {
+        return 'Please enter a valid URL with a domain name';
+      }
+      
+    } catch (e) {
+      return 'Please enter a valid URL';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates that two password fields match
+  /// Returns error message if they don't match, null if valid
+  /// 
+  /// Commonly used for password confirmation fields
+  String? validatePasswordConfirmation(String? password, String? confirmPassword) {
+    // Check if confirmation password is null or empty
+    if (confirmPassword == null || confirmPassword.isEmpty) {
+      return 'Please confirm your password';
+    }
+    
+    // Check if passwords match
+    if (password != confirmPassword) {
+      return 'Passwords do not match';
+    }
+    
+    // Return null if validation passes
+    return null;
+  }
+
+  /// Validates multiple fields at once
+  /// Returns a map of field names to error messages
+  /// Only includes fields that have validation errors
+  /// 
+  /// Example usage:
+  /// ```dart
+  /// final errors = validateMultiple({
+  ///   'email': () => validateEmail(emailController.text),
+  ///   'password': () => validatePassword(passwordController.text),
+  /// });
+  /// 
+  /// if (errors.isNotEmpty) {
+  ///   // Handle validation errors
+  /// }
+  /// ```
+  Map<String, String> validateMultiple(Map<String, String? Function()> validators) {
+    final errors = <String, String>{};
+    
+    // Run each validator and collect errors
+    validators.forEach((fieldName, validator) {
+      final error = validator();
+      if (error != null) {
+        errors[fieldName] = error;
+      }
+    });
+    
+    return errors;
+  }
+}
+```
+
+## test/home_screen_test.dart
+
+**What issue it solves**: Ensures the home screen widget functions correctly through automated testing. Catches bugs early and ensures UI components render and behave as expected.
+
+**Benefits**:
+- Automated quality assurance
+- Regression testing
+- Documentation of expected behavior
+- Confidence in code changes
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+
+// Import the files to be tested
+import '../lib/presentation/views/screens/home_screen.dart';
+import '../lib/presentation/controllers/home_controller.dart';
+import '../lib/data/providers/user_provider.dart';
+import '../lib/data/providers/product_provider.dart';
+import '../lib/data/models/user_model.dart';
+import '../lib/data/models/product_model.dart';
+
+// Generate mock classes using mockito
+// Run 'flutter packages pub run build_runner build' to generate mocks
+@GenerateMocks([HomeController, UserProvider, ProductProvider])
+import 'home_screen_test.mocks.dart';
+
+/// Test suite for HomeScreen widget
+/// Tests various scenarios and user interactions on the home screen
+void main() {
+  // Test group for HomeScreen widget tests
+  group('HomeScreen Widget Tests', () {
+    // Mock objects for testing
+    late MockHomeController mockHomeController;
+    late MockUserProvider mockUserProvider;
+    late MockProductProvider mockProductProvider;
+
+    // Setup method that runs before each test
+    setUp(() {
+      // Initialize mock objects
+      mockHomeController = MockHomeController();
+      mockUserProvider = MockUserProvider();
+      mockProductProvider = MockProductProvider();
+      
+      // Setup default mock behaviors
+      _setupDefaultMockBehaviors();
+    });
+
+    /// Helper method to create a testable widget
+    /// Wraps the HomeScreen with necessary providers and MaterialApp
+    Widget createTestableWidget() {
+      return MultiProvider(
+        providers: [
+          // Provide mock controllers and providers
+          ChangeNotifierProvider<UserProvider>.value(value: mockUserProvider),
+          ChangeNotifierProvider<ProductProvider>.value(value: mockProductProvider),
+          Provider<HomeController>.value(value: mockHomeController),
+        ],
+        child: MaterialApp(
+          // Wrap in MaterialApp for proper widget testing
+          home: HomeScreen(),
+          // Add theme for consistent testing
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+          ),
+        ),
+      );
+    }
+
+    /// Test 1: Verify that HomeScreen renders without crashing
+    testWidgets('should render HomeScreen without errors', (WidgetTester tester) async {
+      // Arrange: Create the testable widget
+      final widget = createTestableWidget();
+      
+      // Act: Pump the widget into the test environment
+      await tester.pumpWidget(widget);
+      
+      // Assert: Verify the widget is rendered
+      expect(find.byType(HomeScreen), findsOneWidget);
+      
+      // Verify key UI elements are present
+      expect(find.byType(AppBar), findsOneWidget);
+      expect(find.byType(Scaffold), findsOneWidget);
+    });
+
+    /// Test 2: Verify app bar title is displayed correctly
+    testWidgets('should display correct app bar title', (WidgetTester tester) async {
+      // Arrange
+      final widget = createTestableWidget();
+      
+      // Act
+      await tester.pumpWidget(widget);
+      
+      // Assert: Check if app bar title is present
+      expect(find.text('Home'), findsOneWidget);
+      
+      // Verify app bar structure
+      final appBar = tester.widget<AppBar>(find.byType(AppBar));
+      expect(appBar.title, isA<Text>());
+    });
+
+    /// Test 3: Test loading state display
+    testWidgets('should show loading indicator when data is loading', (WidgetTester tester) async {
+      // Arrange: Setup loading state
+      when(mockUserProvider.isLoading).thenReturn(true);
+      when(mockProductProvider.isLoading).thenReturn(true);
+      
+      final widget = createTestableWidget();
+      
+      // Act
+      await tester.pumpWidget(widget);
+      
+      // Assert: Verify loading indicator is shown
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      
+      // Verify loading text is displayed
+      expect(find.text('Loading...'), findsOneWidget);
+    });
+
+    /// Test 4: Test data display when loaded successfully
+    testWidgets('should display user and product data when loaded', (WidgetTester tester) async {
+      // Arrange: Setup loaded state with mock data
+      when(mockUserProvider.isLoading).thenReturn(false);
+      when(mockProductProvider.isLoading).thenReturn(false);
+      when(mockUserProvider.currentUser).thenReturn(_createMockUser());
+      when(mockProductProvider.products).thenReturn(_createMockProducts());
+      
+      final widget = createTestableWidget();
+      
+      // Act
+      await tester.pumpWidget(widget);
+      
+      // Assert: Verify data is displayed
+      expect(find.text('Welcome, John Doe'), findsOneWidget);
+      expect(find.text('Featured Products'), findsOneWidget);
+      
+      // Verify product cards are displayed
+      expect(find.byType(Card), findsAtLeastNWidgets(2));
+    });
+
+    /// Test 5: Test error state display
+    testWidgets('should show error message when data loading fails', (WidgetTester tester) async {
+      // Arrange: Setup error state
+      when(mockUserProvider.isLoading).thenReturn(false);
+      when(mockUserProvider.error).thenReturn('Failed to load user data');
+      when(mockProductProvider.isLoading).thenReturn(false);
+      when(mockProductProvider.error).thenReturn(null);
+      
+      final widget = createTestableWidget();
+      
+      // Act
+      await tester.pumpWidget(widget);
+      
+      // Assert: Verify error message is shown
+      expect(find.text('Error: Failed to load user data'), findsOneWidget);
+      
+      // Verify error icon is displayed
+      expect(find.byIcon(Icons.error), findsOneWidget);
+    });
+
+    /// Test 6: Test refresh functionality
+    testWidgets('should trigger refresh when pull-to-refresh is used', (WidgetTester tester) async {
+      // Arrange
+      when(mockUserProvider.isLoading).thenReturn(false);
+      when(mockProductProvider.isLoading).thenReturn(false);
+      
+      final widget = createTestableWidget();
+      await tester.pumpWidget(widget);
+      
+      // Act: Simulate pull-to-refresh gesture
+      await tester.drag(find.byType(RefreshIndicator), const Offset(0, 200));
+      await tester.pump();
+      
+      // Assert: Verify refresh methods were called
+      verify(mockHomeController.refreshData()).called(1);
+    });
+
+    /// Test 7: Test navigation to profile screen
+    testWidgets('should navigate to profile when profile button is tapped', (WidgetTester tester) async {
+      // Arrange
+      when(mockUserProvider.isLoading).thenReturn(false);
+      when(mockUserProvider.currentUser).thenReturn(_createMockUser());
+      
+      final widget = createTestableWidget();
+      await tester.pumpWidget(widget);
+      
+      // Act: Tap on profile icon/button
+      await tester.tap(find.byIcon(Icons.person));
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify navigation method was called
+      verify(mockHomeController.navigateToProfile()).called(1);
+    });
+
+    /// Test 8: Test product card interaction
+    testWidgets('should handle product card tap', (WidgetTester tester) async {
+      // Arrange
+      when(mockProductProvider.isLoading).thenReturn(false);
+      when(mockProductProvider.products).thenReturn(_createMockProducts());
+      
+      final widget = createTestableWidget();
+      await tester.pumpWidget(widget);
+      
+      // Act: Tap on first product card
+      final productCard = find.byType(Card).first;
+      await tester.tap(productCard);
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify product selection method was called
+      verify(mockHomeController.selectProduct(any)).called(1);
+    });
+
+    /// Test 9: Test bottom navigation interaction
+    testWidgets('should handle bottom navigation tap', (WidgetTester tester) async {
+      // Arrange
+      final widget = createTestableWidget();
+      await tester.pumpWidget(widget);
+      
+      // Act: Tap on second bottom navigation item
+      final bottomNavItems = find.byType(BottomNavigationBarItem);
+      if (bottomNavItems.evaluate().isNotEmpty) {
+        await tester.tap(find.byIcon(Icons.search));
+        await tester.pumpAndSettle();
+        
+        // Assert: Verify navigation method was called
+        verify(mockHomeController.changeTab(1)).called(1);
+      }
+    });
+
+    /// Test 10: Test widget disposal and cleanup
+    testWidgets('should dispose resources properly', (WidgetTester tester) async {
+      // Arrange
+      final widget = createTestableWidget();
+      await tester.pumpWidget(widget);
+      
+      // Act: Remove widget from tree (simulate disposal)
+      await tester.pumpWidget(Container());
+      
+      // Assert: Verify cleanup methods were called
+      // This would verify that controllers dispose of resources properly
+      verify(mockHomeController.dispose()).called(1);
+    });
+  });
+
+  /// Group for testing HomeScreen integration with real data
+  group('HomeScreen Integration Tests', () {
+    
+    /// Test real API integration (if needed)
+    testWidgets('should handle real API data loading', (WidgetTester tester) async {
+      // This test would use real providers instead of mocks
+      // to test actual API integration
+      
+      // Skip this test if running in CI environment
+      // where real API calls are not desired
+      if (const bool.fromEnvironment('SKIP_INTEGRATION_TESTS')) {
+        return;
+      }
+ ```
+      
+## test/widget_test.dart
+
+**What issue it solves**: Provides comprehensive widget testing for the entire application, ensuring UI components work correctly in isolation and integration. Tests user interactions, state changes, and widget behavior.
+
+**Benefits**:
+- Comprehensive UI testing coverage
+- Early detection of widget-related bugs
+- Ensures accessibility and usability
+- Documents expected widget behavior
+
+```dart
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:mockito/mockito.dart';
+import 'package:mockito/annotations.dart';
+
+// Import all necessary files for testing
+import '../lib/main.dart';
+import '../lib/presentation/views/widgets/common/custom_button.dart';
+import '../lib/presentation/views/widgets/common/custom_text_field.dart';
+import '../lib/presentation/views/widgets/common/loading_widget.dart';
+import '../lib/presentation/views/widgets/common/error_widget.dart';
+import '../lib/presentation/views/widgets/specific/user_card.dart';
+import '../lib/presentation/views/widgets/specific/product_card.dart';
+import '../lib/data/models/user_model.dart';
+import '../lib/data/models/product_model.dart';
+import '../lib/data/providers/user_provider.dart';
+import '../lib/data/providers/product_provider.dart';
+import '../lib/data/providers/theme_provider.dart';
+
+// Generate mocks for testing
+@GenerateMocks([UserProvider, ProductProvider, ThemeProvider])
+import 'widget_test.mocks.dart';
+
+/// Main widget test suite
+/// Tests various widgets and their interactions
+void main() {
+  
+  /// Test group for main app functionality
+  group('Main App Tests', () {
+    
+    testWidgets('should create main app without errors', (WidgetTester tester) async {
+      // Test that the main app can be created and rendered
+      await tester.pumpWidget(MyApp());
+      
+      // Verify the app is created
+      expect(find.byType(MaterialApp), findsOneWidget);
+    });
+    
+    testWidgets('should have correct app title', (WidgetTester tester) async {
+      // Pump the main app
+      await tester.pumpWidget(MyApp());
+      
+      // Get the MaterialApp widget
+      final materialApp = tester.widget<MaterialApp>(find.byType(MaterialApp));
+      
+      // Verify app title
+      expect(materialApp.title, 'Flutter MVC Demo');
+    });
+  });
+
+  /// Test group for custom button widget
+  group('CustomButton Widget Tests', () {
+    
+    testWidgets('should display button text correctly', (WidgetTester tester) async {
+      // Arrange: Create button with test text
+      const buttonText = 'Test Button';
+      bool wasPressed = false;
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomButton(
+              text: buttonText,
+              onPressed: () {
+                wasPressed = true;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify button text is displayed
+      expect(find.text(buttonText), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget);
+    });
+    
+    testWidgets('should handle button press correctly', (WidgetTester tester) async {
+      // Arrange: Setup button press tracking
+      bool wasPressed = false;
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomButton(
+              text: 'Press Me',
+              onPressed: () {
+                wasPressed = true;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Tap the button
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify callback was executed
+      expect(wasPressed, true);
+    });
+    
+    testWidgets('should be disabled when onPressed is null', (WidgetTester tester) async {
+      // Arrange: Create disabled button
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomButton(
+              text: 'Disabled Button',
+              onPressed: null, // Disabled button
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify button is disabled
+      final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+      expect(button.onPressed, isNull);
+    });
+    
+    testWidgets('should show loading state when isLoading is true', (WidgetTester tester) async {
+      // Arrange: Create button in loading state
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomButton(
+              text: 'Loading Button',
+              onPressed: () {},
+              isLoading: true,
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify loading indicator is shown
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Loading Button'), findsNothing);
+    });
+  });
+
+  /// Test group for custom text field widget
+  group('CustomTextField Widget Tests', () {
+    
+    testWidgets('should display hint text correctly', (WidgetTester tester) async {
+      // Arrange: Create text field with hint
+      const hintText = 'Enter your name';
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomTextField(
+              hintText: hintText,
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify hint text is displayed
+      expect(find.text(hintText), findsOneWidget);
+      expect(find.byType(TextFormField), findsOneWidget);
+    });
+    
+    testWidgets('should handle text input correctly', (WidgetTester tester) async {
+      // Arrange: Create text field with controller
+      final controller = TextEditingController();
+      const inputText = 'Hello World';
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomTextField(
+              controller: controller,
+              hintText: 'Enter text',
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Enter text
+      await tester.enterText(find.byType(TextFormField), inputText);
+      
+      // Assert: Verify text was entered
+      expect(controller.text, inputText);
+      expect(find.text(inputText), findsOneWidget);
+    });
+    
+    testWidgets('should display validation error', (WidgetTester tester) async {
+      // Arrange: Create text field with validator
+      const errorMessage = 'This field is required';
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Form(
+              child: CustomTextField(
+                hintText: 'Required field',
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return errorMessage;
+                  }
+                  return null;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Trigger validation by submitting empty form
+      final formState = tester.state(find.byType(Form)) as FormState;
+      formState.validate();
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify error message is displayed
+      expect(find.text(errorMessage), findsOneWidget);
+    });
+    
+    testWidgets('should toggle password visibility', (WidgetTester tester) async {
+      // Arrange: Create password field
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomTextField(
+              hintText: 'Password',
+              isPassword: true,
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Initially password should be obscured
+      final textField = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(textField.obscureText, true);
+      
+      // Act: Tap visibility toggle
+      await tester.tap(find.byIcon(Icons.visibility_off));
+      await tester.pumpAndSettle();
+      
+      // Assert: Password should now be visible
+      final updatedTextField = tester.widget<TextFormField>(find.byType(TextFormField));
+      expect(updatedTextField.obscureText, false);
+    });
+  });
+
+  /// Test group for loading widget
+  group('LoadingWidget Tests', () {
+    
+    testWidgets('should display loading indicator', (WidgetTester tester) async {
+      // Arrange & Act: Create loading widget
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LoadingWidget(),
+          ),
+        ),
+      );
+      
+      // Assert: Verify loading components are present
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('Loading...'), findsOneWidget);
+    });
+    
+    testWidgets('should display custom loading message', (WidgetTester tester) async {
+      // Arrange: Create loading widget with custom message
+      const customMessage = 'Please wait...';
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LoadingWidget(message: customMessage),
+          ),
+        ),
+      );
+      
+      // Assert: Verify custom message is displayed
+      expect(find.text(customMessage), findsOneWidget);
+    });
+  });
+
+  /// Test group for error widget
+  group('ErrorWidget Tests', () {
+    
+    testWidgets('should display error message', (WidgetTester tester) async {
+      // Arrange: Create error widget with message
+      const errorMessage = 'Something went wrong';
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomErrorWidget(message: errorMessage),
+          ),
+        ),
+      );
+      
+      // Assert: Verify error components are present
+      expect(find.text(errorMessage), findsOneWidget);
+      expect(find.byIcon(Icons.error), findsOneWidget);
+    });
+    
+    testWidgets('should handle retry button press', (WidgetTester tester) async {
+      // Arrange: Setup retry callback tracking
+      bool retryPressed = false;
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CustomErrorWidget(
+              message: 'Error occurred',
+              onRetry: () {
+                retryPressed = true;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Tap retry button
+      await tester.tap(find.text('Retry'));
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify retry callback was executed
+      expect(retryPressed, true);
+    });
+  });
+
+  /// Test group for user card widget
+  group('UserCard Widget Tests', () {
+    late UserModel testUser;
+    
+    setUp(() {
+      // Create test user data
+      testUser = UserModel(
+        id: '1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        avatarUrl: 'https://example.com/avatar.jpg',
+        role: 'admin',
+        createdAt: DateTime.now(),
+      );
+    });
+    
+    testWidgets('should display user information correctly', (WidgetTester tester) async {
+      // Arrange & Act: Create user card
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserCard(user: testUser),
+          ),
+        ),
+      );
+      
+      // Assert: Verify user information is displayed
+      expect(find.text(testUser.name), findsOneWidget);
+      expect(find.text(testUser.email), findsOneWidget);
+      expect(find.text(testUser.role.toUpperCase()), findsOneWidget);
+    });
+    
+    testWidgets('should handle user card tap', (WidgetTester tester) async {
+      // Arrange: Setup tap callback tracking
+      UserModel? tappedUser;
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserCard(
+              user: testUser,
+              onTap: (user) {
+                tappedUser = user;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Tap the user card
+      await tester.tap(find.byType(Card));
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify tap callback was executed with correct user
+      expect(tappedUser, equals(testUser));
+    });
+    
+    testWidgets('should display placeholder when avatar URL is null', (WidgetTester tester) async {
+      // Arrange: Create user without avatar
+      final userWithoutAvatar = UserModel(
+        id: '2',
+        name: 'Jane Doe',
+        email: 'jane@example.com',
+        avatarUrl: null,
+        role: 'user',
+        createdAt: DateTime.now(),
+      );
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: UserCard(user: userWithoutAvatar),
+          ),
+        ),
+      );
+      
+      // Assert: Verify placeholder icon is displayed
+      expect(find.byIcon(Icons.person), findsOneWidget);
+    });
+  });
+
+  /// Test group for product card widget
+  group('ProductCard Widget Tests', () {
+    late ProductModel testProduct;
+    
+    setUp(() {
+      // Create test product data
+      testProduct = ProductModel(
+        id: '1',
+        name: 'Test Product',
+        description: 'A great test product',
+        price: 99.99,
+        imageUrl: 'https://example.com/product.jpg',
+        category: 'Electronics',
+        inStock: true,
+      );
+    });
+    
+    testWidgets('should display product information correctly', (WidgetTester tester) async {
+      // Arrange & Act: Create product card
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProductCard(product: testProduct),
+          ),
+        ),
+      );
+      
+      // Assert: Verify product information is displayed
+      expect(find.text(testProduct.name), findsOneWidget);
+      expect(find.text(testProduct.description), findsOneWidget);
+      expect(find.text('\${testProduct.price.toStringAsFixed(2)}'), findsOneWidget);
+      expect(find.text(testProduct.category), findsOneWidget);
+    });
+    
+    testWidgets('should show "In Stock" when product is available', (WidgetTester tester) async {
+      // Arrange & Act: Create product card with in-stock product
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProductCard(product: testProduct),
+          ),
+        ),
+      );
+      
+      // Assert: Verify stock status is displayed
+      expect(find.text('In Stock'), findsOneWidget);
+      expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    });
+    
+    testWidgets('should show "Out of Stock" when product is unavailable', (WidgetTester tester) async {
+      // Arrange: Create out-of-stock product
+      final outOfStockProduct = ProductModel(
+        id: '2',
+        name: 'Unavailable Product',
+        description: 'This product is out of stock',
+        price: 149.99,
+        imageUrl: 'https://example.com/product2.jpg',
+        category: 'Electronics',
+        inStock: false,
+      );
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProductCard(product: outOfStockProduct),
+          ),
+        ),
+      );
+      
+      // Assert: Verify out-of-stock status is displayed
+      expect(find.text('Out of Stock'), findsOneWidget);
+      expect(find.byIcon(Icons.cancel), findsOneWidget);
+    });
+    
+    testWidgets('should handle add to cart button press', (WidgetTester tester) async {
+      // Arrange: Setup callback tracking
+      ProductModel? addedProduct;
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProductCard(
+              product: testProduct,
+              onAddToCart: (product) {
+                addedProduct = product;
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Act: Tap add to cart button
+      await tester.tap(find.text('Add to Cart'));
+      await tester.pumpAndSettle();
+      
+      // Assert: Verify callback was executed with correct product
+      expect(addedProduct, equals(testProduct));
+    });
+    
+    testWidgets('should disable add to cart when out of stock', (WidgetTester tester) async {
+      // Arrange: Create out-of-stock product
+      final outOfStockProduct = testProduct.copyWith(inStock: false);
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ProductCard(
+              product: outOfStockProduct,
+              onAddToCart: (product) {},
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify add to cart button is disabled
+      final button = tester.widget<ElevatedButton>(
+        find.widgetWithText(ElevatedButton, 'Add to Cart'),
+      );
+      expect(button.onPressed, isNull);
+    });
+  });
+
+  /// Test group for provider integration
+  group('Provider Integration Tests', () {
+    late MockUserProvider mockUserProvider;
+    late MockProductProvider mockProductProvider;
+    late MockThemeProvider mockThemeProvider;
+    
+    setUp(() {
+      // Initialize mock providers
+      mockUserProvider = MockUserProvider();
+      mockProductProvider = MockProductProvider();
+      mockThemeProvider = MockThemeProvider();
+      
+      // Setup default mock behaviors
+      when(mockUserProvider.isLoading).thenReturn(false);
+      when(mockUserProvider.currentUser).thenReturn(null);
+      when(mockProductProvider.isLoading).thenReturn(false);
+      when(mockProductProvider.products).thenReturn([]);
+      when(mockThemeProvider.isDarkMode).thenReturn(false);
+    });
+    
+    testWidgets('should provide correct data to widgets', (WidgetTester tester) async {
+      // Arrange: Setup providers with test data
+      final testUser = UserModel(
+        id: '1',
+        name: 'Test User',
+        email: 'test@example.com',
+        avatarUrl: null,
+        role: 'user',
+        createdAt: DateTime.now(),
+      );
+      
+      when(mockUserProvider.currentUser).thenReturn(testUser);
+      
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<UserProvider>.value(value: mockUserProvider),
+            ChangeNotifierProvider<ProductProvider>.value(value: mockProductProvider),
+            ChangeNotifierProvider<ThemeProvider>.value(value: mockThemeProvider),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer<UserProvider>(
+                builder: (context, userProvider, child) {
+                  final user = userProvider.currentUser;
+                  return user != null
+                      ? Text('Hello, ${user.name}')
+                      : Text('No user');
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Verify provider data is used correctly
+      expect(find.text('Hello, Test User'), findsOneWidget);
+    });
+    
+    testWidgets('should handle provider state changes', (WidgetTester tester) async {
+      // This test would verify that widgets update when provider state changes
+      // Implementation depends on specific provider notification mechanisms
+      
+      // Arrange: Setup initial state
+      when(mockUserProvider.isLoading).thenReturn(true);
+      
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider<UserProvider>.value(value: mockUserProvider),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Consumer<UserProvider>(
+                builder: (context, userProvider, child) {
+                  return userProvider.isLoading
+                      ? CircularProgressIndicator()
+                      : Text('Content loaded');
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      // Assert: Initially loading state
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      
+      // Act: Change provider state
+      when(mockUserProvider.isLoading).thenReturn(false);
+      mockUserProvider.notifyListeners();
+      await tester.pumpAndSettle();
+      
+      // Assert: State should be updated
+      expect(find.text('Content loaded'), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+    });
+  });
+
+  /// Test group for accessibility
+  group('Accessibility Tests', () {
+    
+    testWidgets('should have proper semantic labels', (WidgetTester tester) async {
+      // Test that widgets have appropriate semantic labels for screen readers
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                Semantics(
+                  label: 'Main navigation button',
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    child: Text('Navigate'),
+                  ),
+                ),
+                Semantics(
+                  label: 'User input field',
+                  child: TextField(
+                    decoration: InputDecoration(hintText: 'Enter text'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+      
+      // Verify semantic labels are present
+      expect(
+        tester.getSemantics(find.text('Navigate')),
+        matchesSemantics(label: 'Main navigation button'),
+      );
+    });
+    
+    testWidgets('should have proper contrast ratios', (WidgetTester tester) async {
+      // This would test color contrast ratios for accessibility
+      // Implementation would check if text colors have sufficient contrast
+      // against their background colors
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData.light(),
+          home: Scaffold(
+            body: Text(
+              'Accessible text',
+              style: TextStyle(
+                color: Colors.black,
+                backgroundColor: Colors.white,
+              ),
+            ),
+          ),
+        ),
+      );
+      
+      // Verify text is rendered
+      expect(find.text('Accessible text'), findsOneWidget);
+    });
+  });
+
+  /// Test group for performance
+  group('Performance Tests', () {
+    
+    testWidgets('should handle large lists efficiently', (WidgetTester tester) async {
+      // Test widget performance with large datasets
+      final largeProductList = List.generate(1000, (index) => 
+        ProductModel(
+          id: index.toString(),
+          name: 'Product $index',
+          description: 'Description for product $index',
+          price: (index * 10.0),
+          imageUrl: 'https://example.com/product$index.jpg',
+          category: 'Category ${index % 5}',
+          inStock: index % 2 == 0,
+        ),
+      );
+      
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ListView.builder(
+              itemCount: largeProductList.length,
+              itemBuilder: (context, index) {
+                return ProductCard(product: largeProductList[index]);
+              },
+            ),
+          ),
+        ),
+      );
+      
+      // Verify that the list renders without performance issues
+      expect(find.byType(ListView), findsOneWidget);
+      
+      // Test scrolling performance
+      await tester.drag(find.byType(ListView), const Offset(0, -500));
+      await tester.pumpAndSettle();
+      
+      // Verify scroll completed successfully
+      expect(find.byType(ProductCard), findsWidgets);
+    });
+  });
+}
+```
+
+# Benefits of Flutter Project Structure: An Intuitive Analogy
+
+Imagine building a Flutter project like organizing a large, bustling kitchen in a restaurant. Each file and folder in the project structure is like a specific area or tool in the kitchen, designed to make cooking (development) efficient, maintainable, and scalable. Below, we’ll explore the Flutter project structure, explain why files are separated this way, and provide an intuitive analogy with benefits for each separation.
+
+---
+
+## Project Structure Overview
+The Flutter project structure is designed to promote **separation of concerns**, **modularity**, and **maintainability**. Each folder and file has a specific role, ensuring the codebase is organized, reusable, and easy to scale. Let’s break it down using the kitchen analogy.
+
+---
+
+## Analogy: The Restaurant Kitchen
+Think of your Flutter project as a restaurant kitchen preparing a variety of dishes (features) for customers (users). The kitchen is divided into stations—prep area, cooking station, storage, serving area, and cleaning station—each with specific tools and ingredients. This organization ensures the chefs (developers) can work efficiently, avoid chaos, and deliver high-quality dishes (a polished app).
+
+---
+
+## File/Folder Breakdown and Benefits
+
+### 1. `pubspec.yaml` - The Recipe Book
+**Purpose**: Defines the project’s dependencies, assets, and configurations.  
+**Analogy**: The recipe book lists all ingredients (dependencies like packages) and tools (fonts, images) needed to cook the dishes.  
+**Benefits**:
+- **Centralized Configuration**: Keeps all external dependencies and assets in one place, making it easy to manage and update.
+- **Reusability**: Ensures the team knows exactly what’s needed to “cook” the app, avoiding missing ingredients.
+- **Example**: Adding `http` package to `pubspec.yaml` is like adding olive oil to the recipe book—everyone knows it’s available for use.
+
+### 2. `README.md` - The Kitchen Manual
+**Purpose**: Documents the project’s purpose, setup, and usage.  
+**Analogy**: The kitchen manual explains how the kitchen operates, from setup to cleaning procedures, so new chefs (developers) can get started quickly.  
+**Benefits**:
+- **Onboarding**: Helps new team members understand the project without digging through code.
+- **Clarity**: Provides a high-level overview of the app’s purpose and structure.
+- **Example**: A `README.md` explaining how to run the app is like a manual showing how to start the oven and where to find the pans.
+
+### 3. `.gitignore` - The Cleaning Checklist
+**Purpose**: Specifies which files (e.g., build artifacts, temporary files) Git should ignore.  
+**Analogy**: The cleaning checklist tells the staff which items (like dirty dishes or scraps) to discard to keep the kitchen clean.  
+**Benefits**:
+- **Clean Repository**: Prevents unnecessary files from cluttering the version control system.
+- **Efficiency**: Reduces repository size and avoids conflicts from auto-generated files.
+- **Example**: Ignoring `build/` folder is like ensuring used napkins don’t end up in the storage room.
+
+### 4. `assets/` - The Pantry
+**Purpose**: Stores static resources like images, fonts, and translations.  
+**Analogy**: The pantry holds ingredients (images, fonts) and pre-made sauces (translations) ready for use in dishes.  
+**Benefits**:
+- **Organization**: Keeps all static assets in one place, making them easy to access and manage.
+- **Scalability**: Subfolders like `images/` or `translations/` allow for easy expansion as the app grows.
+- **Example**: Storing `logo.png` in `assets/images/` is like keeping tomatoes in the pantry’s vegetable section—easy to find when needed.
+
+### 5. `lib/` - The Cooking Stations
+**Purpose**: Contains the core Dart code for the app, divided into logical modules.  
+**Analogy**: The main kitchen area with specialized stations (prep, cooking, plating) where chefs create the dishes.  
+**Benefits**:
+- **Modularity**: Separates concerns (UI, logic, data) into distinct areas for better maintainability.
+- **Scalability**: Makes it easy to add new features without disrupting existing code.
+- **Example**: The `lib/` folder is like the kitchen’s main workspace, with stations for chopping (data), cooking (logic), and plating (UI).
+
+#### 5.1 `lib/main.dart` - The Head Chef’s Station
+**Purpose**: The entry point of the app, initializing the app’s core setup.  
+**Analogy**: The head chef’s station where the cooking process starts, directing the team and setting the menu.  
+**Benefits**:
+- **Single Entry Point**: Provides a clear starting point for the app, reducing confusion.
+- **Initialization**: Sets up the app’s core configuration (e.g., theme, routes).
+- **Example**: `main.dart` calling `runApp(MyApp())` is like the head chef shouting “Start cooking!” to kick off service.
+
+#### 5.2 `lib/app/` - The Kitchen Blueprint
+**Purpose**: Contains app-level configurations and routing logic.  
+**Analogy**: The kitchen blueprint outlines how stations connect and how dishes move from prep to serving.  
+**Benefits**:
+- **Centralized Navigation**: Keeps routing logic (`app_routes.dart`, `route_generator.dart`) in one place for consistent navigation.
+- **Reusability**: Allows easy modification of app-wide settings in `app.dart`.
+- **Example**: `route_generator.dart` defining paths is like a blueprint showing how to move plates from the prep station to the dining area.
+
+#### 5.3 `lib/core/` - The Utility Station
+**Purpose**: Holds reusable utilities, constants, and services.  
+**Analogy**: The utility station with shared tools (knives, mixers) and ingredients (salt, pepper) used across dishes.  
+**Benefits**:
+- **Reusability**: Centralizes constants (`app_constants.dart`) and utilities (`validators.dart`, `extensions.dart`) to avoid duplication.
+- **Consistency**: Ensures services like `api_service.dart` or `storage_service.dart` are accessible app-wide.
+- **Example**: `api_constants.dart` storing API endpoints is like keeping a jar of salt that every chef can use.
+
+#### 5.4 `lib/data/` - The Storage Room
+**Purpose**: Manages data models, repositories, and state providers.  
+**Analogy**: The storage room holds raw ingredients (data models) and prepped items (repositories) for cooking.  
+**Benefits**:
+- **Separation of Concerns**: Isolates data logic (`user_model.dart`, `user_repository.dart`) from UI and business logic.
+- **Testability**: Makes it easier to test data-related logic independently.
+- **Example**: `user_repository.dart` fetching user data is like a chef grabbing ingredients from the storage room.
+
+#### 5.5 `lib/presentation/` - The Plating Station
+**Purpose**: Contains UI-related code, including screens, widgets, and themes.  
+**Analogy**: The plating station where dishes are arranged beautifully for customers.  
+**Benefits**:
+- **UI Isolation**: Separates UI (`home_screen.dart`, `custom_button.dart`) from business logic for cleaner code.
+- **Reusability**: Widgets in `widgets/common/` (e.g., `custom_button.dart`) can be reused across screens.
+- **Example**: `product_card.dart` is like a plating template for presenting a dish consistently across the menu.
+
+#### 5.6 `lib/shared/` - The Shared Toolbox
+**Purpose**: Stores enums and mixins used across the app.  
+**Analogy**: The shared toolbox with universal tools (spoons, tongs) and labels (enums) used by all chefs.  
+**Benefits**:
+- **Consistency**: Enums like `app_state.dart` ensure consistent state management.
+- **Reusability**: Mixins like `validation_mixin.dart` provide reusable functionality.
+- **Example**: `user_role.dart` defining roles is like labeling chefs as “Sous Chef” or “Pastry Chef” for clarity.
+
+### 6. `test/` - The Taste-Testing Station
+**Purpose**: Contains unit and widget tests to ensure code quality.  
+**Analogy**: The taste-testing station where dishes are checked for quality before serving.  
+**Benefits**:
+- **Reliability**: Tests (`home_screen_test.dart`) ensure features work as expected.
+- **Maintainability**: Makes it easier to catch bugs when refactoring.
+- **Example**: `widget_test.dart` testing a button is like tasting a sauce to ensure it’s not too salty.
+
+### 7. Platform-Specific Folders (`android/`, `ios/`, etc.) - The Delivery Trucks
+**Purpose**: Contains platform-specific configurations for Android, iOS, web, etc.  
+**Analogy**: Delivery trucks customized to transport dishes to different locations (platforms).  
+**Benefits**:
+- **Platform Optimization**: Allows fine-tuning for each platform (e.g., Android’s `build.gradle`).
+- **Isolation**: Keeps platform-specific code separate from the core Flutter code.
+- **Example**: `android/` configuring permissions is like ensuring the truck has the right license for delivery.
+
+---
+
+## Why This Separation Matters
+Just like a well-organized kitchen ensures chefs can work efficiently, serve high-quality dishes, and scale operations for a busy night, this Flutter project structure:
+- **Promotes Collaboration**: Developers can work on specific areas (UI, data, services) without conflicts.
+- **Enhances Maintainability**: Clear separation makes it easier to update or debug specific parts.
+- **Supports Scalability**: New features (screens, models) can be added without restructuring the codebase.
+- **Improves Testability**: Isolated components (e.g., repositories, widgets) are easier to test.
+
+**Example in Action**: Imagine adding a new “Order History” feature. You’d:
+- Add an `order_model.dart` in `data/models/` (new ingredient).
+- Create an `order_repository.dart` in `data/repositories/` (prep the ingredient).
+- Build an `order_screen.dart` in `presentation/views/screens/` (plate the dish).
+- Update `route_generator.dart` in `app/routes/` (add to the delivery route).
+This modular approach ensures the new feature integrates seamlessly without disrupting the existing codebase.
+
+---
+
+## Conclusion
+The Flutter project structure is like a well-designed kitchen where every tool, ingredient, and station has a purpose. By separating files into `assets/`, `lib/`, `test/`, and platform-specific folders, the structure ensures the app is maintainable, scalable, and easy to collaborate on. Just as a restaurant delivers delicious meals through organization, this structure helps developers deliver a robust, user-friendly app.
