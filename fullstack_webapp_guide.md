@@ -6736,3 +6736,1350 @@ SELECT 'Database initialization completed successfully!' AS message;
 ```
 
 ---
+
+## docs/API.md
+
+```markdown
+# API Documentation
+
+## Authentication Endpoints
+
+### POST /api/auth/register
+Register a new user account.
+
+**Request Body:**
+```json
+{
+  "name": "John Doe",
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "user": {
+    "id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+### POST /api/auth/login
+Login with email and password.
+
+**Request Body:**
+```json
+{
+  "email": "john@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "token": "jwt_token_here",
+  "refreshToken": "refresh_token_here",
+  "user": {
+    "id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com"
+  }
+}
+```
+
+### GET /api/auth/google
+Initiate Google OAuth login.
+
+### POST /api/auth/refresh
+Refresh JWT token using refresh token.
+
+**Request Body:**
+```json
+{
+  "refreshToken": "refresh_token_here"
+}
+```
+
+### POST /api/auth/logout
+Logout user and invalidate tokens.
+
+## User Endpoints
+
+### GET /api/users/profile
+Get current user profile (requires authentication).
+
+**Headers:**
+```
+Authorization: Bearer jwt_token_here
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "user": {
+    "id": "user_id",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "bio": "User bio here"
+  }
+}
+```
+
+### PUT /api/users/profile
+Update user profile (requires authentication).
+
+**Request Body:**
+```json
+{
+  "name": "John Smith",
+  "phone": "+1234567890",
+  "bio": "Updated bio"
+}
+```
+
+## Dashboard Endpoints
+
+### GET /api/dashboard/stats
+Get dashboard statistics (requires authentication).
+
+**Response:**
+```json
+{
+  "success": true,
+  "stats": {
+    "totalUsers": 150,
+    "activeSessions": 25,
+    "loginCount": 1250
+  }
+}
+```
+
+## Error Responses
+
+All endpoints return errors in the following format:
+
+```json
+{
+  "success": false,
+  "message": "Error message here",
+  "errors": ["Detailed error 1", "Detailed error 2"]
+}
+```
+
+## Rate Limiting
+
+- Authentication endpoints: 5 requests per 15 minutes
+- General API endpoints: 100 requests per 15 minutes
+- File upload endpoints: 10 requests per hour
+
+## Status Codes
+
+- 200: Success
+- 201: Created
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 429: Too Many Requests
+- 500: Internal Server Error
+```
+
+---
+
+## docs/SETUP.md
+
+```markdown
+# Setup Guide
+
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- MongoDB (local or cloud instance)
+- MySQL (v8.0 or higher)
+- Git
+
+## Installation Steps
+
+### 1. Clone the Repository
+
+```bash
+git clone <repository-url>
+cd fullstack-webapp
+```
+
+### 2. Backend Setup
+
+```bash
+cd server
+npm install
+```
+
+### 3. Frontend Setup
+
+```bash
+cd client
+npm install
+```
+
+### 4. Environment Configuration
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your configuration:
+
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=5000
+CLIENT_URL=http://localhost:3000
+
+# Database Configuration
+MONGODB_URI=mongodb://localhost:27017/fullstack_app
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DATABASE=fullstack_app
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRE=7d
+JWT_REFRESH_SECRET=your_refresh_token_secret
+JWT_REFRESH_EXPIRE=30d
+
+# OAuth Configuration
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Email Configuration (for password reset)
+EMAIL_FROM=noreply@yourdomain.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_app_password
+
+# Security
+SESSION_SECRET=your_session_secret
+BCRYPT_ROUNDS=12
+```
+
+### 5. Database Setup
+
+#### MongoDB Setup
+Make sure MongoDB is running locally or use a cloud service like MongoDB Atlas.
+
+#### MySQL Setup
+1. Create database:
+```sql
+CREATE DATABASE fullstack_app;
+```
+
+2. Run migrations:
+```bash
+cd server
+npm run migrate
+```
+
+3. Seed database (optional):
+```bash
+npm run seed
+```
+
+### 6. Running the Application
+
+#### Development Mode
+
+Terminal 1 (Backend):
+```bash
+cd server
+npm run dev
+```
+
+Terminal 2 (Frontend):
+```bash
+cd client
+npm start
+```
+
+#### Production Mode
+
+Build frontend:
+```bash
+cd client
+npm run build
+```
+
+Start production server:
+```bash
+cd server
+npm start
+```
+
+### 7. Verify Installation
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000/api
+- Health check: http://localhost:5000/api/health
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Port already in use**
+   - Change PORT in .env file
+   - Kill process: `lsof -ti:5000 | xargs kill -9`
+
+2. **Database connection failed**
+   - Verify MongoDB/MySQL is running
+   - Check connection strings in .env
+
+3. **Module not found errors**
+   - Delete node_modules and package-lock.json
+   - Run `npm install` again
+
+4. **CORS errors**
+   - Verify CLIENT_URL in backend .env
+   - Check CORS configuration in app.js
+
+### Development Tips
+
+- Use `npm run dev` for auto-restart on changes
+- Check browser console for frontend errors
+- Check server logs for backend errors
+- Use MongoDB Compass for database inspection
+- Use Postman for API testing
+```
+
+---
+
+## docs/DEPLOYMENT.md
+
+```markdown
+# Deployment Guide
+
+## Production Deployment
+
+### Option 1: Docker Deployment
+
+#### Prerequisites
+- Docker and Docker Compose installed
+- Domain name (optional)
+- SSL certificate (for HTTPS)
+
+#### Steps
+
+1. **Build and run with Docker Compose:**
+```bash
+docker-compose up -d --build
+```
+
+2. **Environment Configuration:**
+Update `docker-compose.yml` environment variables for production.
+
+3. **SSL Setup (with Nginx):**
+```yaml
+# Add to docker-compose.yml
+nginx:
+  image: nginx:alpine
+  ports:
+    - "80:80"
+    - "443:443"
+  volumes:
+    - ./nginx.conf:/etc/nginx/nginx.conf
+    - ./ssl:/etc/ssl/certs
+```
+
+### Option 2: Manual Deployment
+
+#### Server Requirements
+- Ubuntu 20.04+ or CentOS 8+
+- Node.js 18+
+- MongoDB and MySQL
+- Nginx (reverse proxy)
+- PM2 (process manager)
+
+#### Steps
+
+1. **Server Setup:**
+```bash
+# Update system
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Install PM2
+sudo npm install -g pm2
+
+# Install Nginx
+sudo apt install nginx -y
+```
+
+2. **Application Deployment:**
+```bash
+# Clone repository
+git clone <your-repo>
+cd fullstack-webapp
+
+# Install dependencies
+cd server && npm install --production
+cd ../client && npm install && npm run build
+
+# Copy built files to server directory
+sudo cp -r build/* /var/www/html/
+```
+
+3. **PM2 Configuration:**
+```javascript
+// ecosystem.config.js
+module.exports = {
+  apps: [{
+    name: 'fullstack-app',
+    script: './server/server.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'development'
+    },
+    env_production: {
+      NODE_ENV: 'production',
+      PORT: 5000
+    }
+  }]
+};
+```
+
+4. **Start Application:**
+```bash
+pm2 start ecosystem.config.js --env production
+pm2 save
+pm2 startup
+```
+
+5. **Nginx Configuration:**
+```nginx
+# /etc/nginx/sites-available/fullstack-app
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # Frontend
+    location / {
+        root /var/www/html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Backend API
+    location /api {
+        proxy_pass http://localhost:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+```
+
+6. **Enable Site:**
+```bash
+sudo ln -s /etc/nginx/sites-available/fullstack-app /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+### Option 3: Cloud Deployment
+
+#### Heroku Deployment
+
+1. **Prepare for Heroku:**
+```json
+// Add to server/package.json
+{
+  "scripts": {
+    "heroku-postbuild": "cd ../client && npm install && npm run build"
+  }
+}
+```
+
+2. **Deploy:**
+```bash
+heroku create your-app-name
+heroku config:set NODE_ENV=production
+heroku config:set MONGODB_URI=your_mongodb_uri
+git push heroku main
+```
+
+#### AWS/DigitalOcean
+
+1. **Create server instance**
+2. **Follow manual deployment steps**
+3. **Configure security groups/firewall**
+4. **Set up load balancer (optional)**
+
+### Database Deployment
+
+#### MongoDB Atlas (Cloud)
+1. Create cluster at mongodb.com
+2. Get connection string
+3. Update MONGODB_URI in production env
+
+#### MySQL Cloud Options
+- AWS RDS
+- Google Cloud SQL
+- DigitalOcean Managed Databases
+
+### Security Checklist
+
+- [ ] Environment variables secured
+- [ ] SSL certificate installed
+- [ ] Firewall configured
+- [ ] Database access restricted
+- [ ] Rate limiting enabled
+- [ ] Security headers configured
+- [ ] CORS properly configured
+- [ ] Sensitive data encrypted
+- [ ] Regular backups scheduled
+- [ ] Monitoring setup
+
+### Monitoring
+
+#### PM2 Monitoring
+```bash
+pm2 monit
+pm2 logs
+```
+
+#### Health Checks
+```bash
+# Add health check endpoint
+curl https://yourdomain.com/api/health
+```
+
+### Backup Strategy
+
+#### Database Backups
+```bash
+# MongoDB
+mongodump --uri="mongodb://..." --out=/backup/mongo/
+
+# MySQL
+mysqldump -u user -p database > backup.sql
+```
+
+#### Application Backups
+```bash
+# Automated backup script
+#!/bin/bash
+tar -czf /backup/app-$(date +%Y%m%d).tar.gz /path/to/app
+```
+```
+
+---
+
+## .env.example
+
+```env
+# Server Configuration
+NODE_ENV=development
+PORT=5000
+CLIENT_URL=http://localhost:3000
+
+# Database Configuration - MongoDB
+MONGODB_URI=mongodb://localhost:27017/fullstack_app
+MONGODB_TEST_URI=mongodb://localhost:27017/fullstack_app_test
+
+# Database Configuration - MySQL
+MYSQL_HOST=localhost
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_mysql_password
+MYSQL_DATABASE=fullstack_app
+MYSQL_TEST_DATABASE=fullstack_app_test
+
+# JWT Configuration
+JWT_SECRET=your_super_secret_jwt_key_here_make_it_long_and_secure
+JWT_EXPIRE=7d
+JWT_REFRESH_SECRET=your_refresh_token_secret_different_from_jwt_secret
+JWT_REFRESH_EXPIRE=30d
+
+# Session Configuration
+SESSION_SECRET=your_session_secret_key_for_express_sessions
+
+# OAuth Configuration - Google
+GOOGLE_CLIENT_ID=your_google_oauth_client_id
+GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:5000/auth/google/callback
+
+# Email Configuration (for password reset, notifications)
+EMAIL_FROM=noreply@yourdomain.com
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your_email@gmail.com
+SMTP_PASS=your_email_app_password
+
+# Security Configuration
+BCRYPT_ROUNDS=12
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+AUTH_RATE_LIMIT_MAX=5
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:3000
+CORS_CREDENTIALS=true
+
+# File Upload Configuration
+MAX_FILE_SIZE=5242880
+UPLOAD_PATH=./uploads
+ALLOWED_FILE_TYPES=jpg,jpeg,png,gif,pdf,doc,docx
+
+# Redis Configuration (optional - for session store)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+
+# Logging Configuration
+LOG_LEVEL=info
+LOG_FILE=./logs/app.log
+
+# API Configuration
+API_VERSION=v1
+API_PREFIX=/api
+
+# Frontend Configuration (for server-side rendering)
+REACT_APP_API_URL=http://localhost:5000/api
+REACT_APP_GOOGLE_CLIENT_ID=your_google_oauth_client_id
+```
+
+---
+
+## .gitignore
+
+```gitignore
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# nyc test coverage
+.nyc_output/
+
+# node-waf configuration
+.lock-wscript
+
+# Compiled binary addons
+build/Release/
+
+# Dependency directories
+jspm_packages/
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache
+.cache
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# React build files
+client/build/
+build/
+
+# Uploads directory
+uploads/
+public/uploads/
+
+# Database files
+*.sqlite
+*.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+
+# Docker
+.dockerignore
+
+# Testing
+coverage/
+.nyc_output/
+
+# Storybook
+storybook-static/
+
+# TypeScript
+*.tsbuildinfo
+
+# ESLint
+.eslintcache
+
+# Stylelint
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# dotenv environment variables file
+.env.test
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+dist
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Temporary folders
+tmp/
+temp/
+
+# Editor directories and files
+.vscode/
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+```
+
+---
+
+## docker-compose.yml
+
+```yaml
+version: '3.8'
+
+services:
+  # Frontend Service
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000/api
+      - REACT_APP_GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - server
+    networks:
+      - fullstack-network
+
+  # Backend Service
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=development
+      - PORT=5000
+      - CLIENT_URL=http://localhost:3000
+      - MONGODB_URI=mongodb://mongo:27017/fullstack_app
+      - MYSQL_HOST=mysql
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=rootpassword
+      - MYSQL_DATABASE=fullstack_app
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - uploads_data:/app/uploads
+    depends_on:
+      - mongo
+      - mysql
+    networks:
+      - fullstack-network
+
+  # MongoDB Service
+  mongo:
+    image: mongo:6.0
+    container_name: fullstack_mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=adminpassword
+      - MONGO_INITDB_DATABASE=fullstack_app
+    volumes:
+      - mongo_data:/data/db
+      - ./database/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - fullstack-network
+
+  # MySQL Service
+  mysql:
+    image: mysql:8.0
+    container_name: fullstack_mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=fullstack_app
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=apppassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - fullstack-network
+
+  # Redis Service (optional - for session storage)
+  redis:
+    image: redis:7-alpine
+    container_name: fullstack_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - fullstack-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: fullstack_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/ssl/certs:ro
+    depends_on:
+      - client
+      - server
+    networks:
+      - fullstack-network
+
+# Volumes for persistent data
+volumes:
+  mongo_data:
+    driver: local
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# Networks
+networks:
+  fullstack-network:
+    driver: bridge
+
+# Development override (use with docker-compose -f docker-compose.yml -f docker-compose.dev.yml up)
+# docker-compose.dev.yml would contain development-specific configurations
+```
+
+---
+
+## Dockerfile
+
+```dockerfile
+# Multi-stage Dockerfile for production builds
+FROM node:18-alpine AS base
+
+# Set working directory
+WORKDIR /app
+
+# Install dependencies only when needed
+FROM base AS deps
+# Check https://github.com/nodejs/docker-node/tree/b4117f9333da4138b03a546ec926ef50a31506c3#nodealpine
+RUN apk add --no-cache libc6-compat
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci --only=production && npm cache clean --force
+
+# Development stage
+FROM base AS dev
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+EXPOSE 5000
+CMD ["npm", "run", "dev"]
+
+# Build stage for frontend
+FROM base AS builder-client
+WORKDIR /app
+COPY client/package*.json ./
+RUN npm ci
+COPY client/ ./
+RUN npm run build
+
+# Build stage for backend
+FROM base AS builder-server
+WORKDIR /app
+COPY server/package*.json ./
+RUN npm ci --only=production
+COPY server/ ./
+
+# Production stage
+FROM node:18-alpine AS production
+
+# Create app directory
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodeuser -u 1001
+
+# Copy built application
+COPY --from=builder-server --chown=nodeuser:nodejs /app ./
+COPY --from=builder-client /app/build ./public
+
+# Copy production dependencies
+COPY --from=deps --chown=nodeuser:nodejs /app/node_modules ./node_modules
+
+# Create uploads directory
+RUN mkdir -p uploads && chown nodeuser:nodejs uploads
+
+# Switch to non-root user
+USER nodeuser
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD node health-check.js
+
+# Start the application
+CMD ["node", "server.js"]
+
+# Alternative multi-service Dockerfile for full-stack
+FROM node:18-alpine AS full-stack
+
+WORKDIR /app
+
+# Install dependencies for both client and server
+COPY package*.json ./
+COPY client/package*.json ./client/
+COPY server/package*.json ./server/
+
+# Install all dependencies
+RUN npm install && \
+    cd client && npm install && \
+    cd ../server && npm install
+
+# Copy source code
+COPY . .
+
+# Build client
+RUN cd client && npm run build
+
+# Expose ports
+EXPOSE 3000 5000
+
+# Start both services (for development only)
+CMD ["npm", "run", "dev:full"]
+```
+
+---
+
+## README.md
+
+```markdown
+# Full-Stack Web Application
+
+A complete full-stack web application built with React, Node.js, Express, MongoDB, MySQL, and comprehensive authentication system including Google OAuth, JWT tokens, and session management.
+
+## 🚀 Features
+
+### Frontend
+- **React 18** with modern hooks and functional components
+- **Redux Toolkit** for state management
+- **React Router** for client-side routing
+- **Responsive design** with Bootstrap + Tailwind CSS
+- **Authentication flows** (login, register, password reset)
+- **Protected routes** and role-based access
+- **Real-time updates** and notifications
+
+### Backend
+- **Node.js & Express.js** RESTful API
+- **MVC architecture** with clean code separation
+- **Dual database support** (MongoDB + MySQL)
+- **Comprehensive authentication** (Local + Google OAuth)
+- **JWT & Refresh tokens** with secure storage
+- **Rate limiting** and security middleware
+- **Input validation** and sanitization
+- **Error handling** and logging
+
+### Security Features
+- Password hashing with bcrypt + salt
+- JWT access and refresh token rotation
+- Google OAuth 2.0 integration
+- Rate limiting and DDoS protection
+- CORS configuration
+- Input sanitization
+- Security headers with Helmet
+- Session management
+
+## 📋 Prerequisites
+
+- Node.js (v16 or higher)
+- npm or yarn
+- MongoDB (local or cloud)
+- MySQL (v8.0 or higher)
+- Git
+
+## 🛠️ Installation
+
+### 1. Clone Repository
+```bash
+git clone <repository-url>
+cd fullstack-webapp
+```
+
+### 2. Install Dependencies
+```bash
+# Install server dependencies
+cd server
+npm install
+
+# Install client dependencies
+cd ../client
+npm install
+```
+
+### 3. Environment Setup
+```bash
+# Copy environment template
+cp .env.example .env
+
+# Edit .env with your configuration
+nano .env
+```
+
+### 4. Database Setup
+```bash
+# Start MongoDB (if local)
+mongod
+
+# Start MySQL and create database
+mysql -u root -p
+CREATE DATABASE fullstack_app;
+
+# Run migrations
+cd server
+npm run migrate
+```
+
+### 5. Start Application
+```bash
+# Start backend (Terminal 1)
+cd server
+npm run dev
+
+# Start frontend (Terminal 2)
+cd client
+npm start
+```
+
+Visit:
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:5000/api
+
+## 🐳 Docker Setup
+
+### Quick Start with Docker Compose
+```bash
+# Build and start all services
+docker-compose up -d --build
+
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+```
+
+### Services Included
+- **Frontend**: React app (port 3000)
+- **Backend**: Node.js API (port 5000)
+- **MongoDB**: Database (port 27017)
+- **MySQL**: Database (port 3306)
+- **Redis**: Session store (port 6379)
+- **Nginx**: Reverse proxy (port 80/443)
+
+## 📚 Project Structure
+
+```
+fullstack-webapp/
+├── client/                     # React Frontend
+│   ├── public/                # Static files
+│   ├── src/
+│   │   ├── components/        # React components
+│   │   ├── pages/            # Page components
+│   │   ├── hooks/            # Custom hooks
+│   │   ├── services/         # API services
+│   │   ├── store/            # Redux store
+│   │   └── styles/           # CSS/Sass files
+│   └── package.json
+├── server/                     # Node.js Backend
+│   ├── controllers/          # Route controllers
+│   ├── models/               # Database models
+│   ├── routes/               # API routes
+│   ├── middleware/           # Custom middleware
+│   ├── config/               # Configuration
+│   ├── services/             # Business logic
+│   └── utils/                # Utilities
+├── database/                   # Database scripts
+├── docs/                      # Documentation
+├── docker-compose.yml         # Docker configuration
+└── README.md
+```
+
+## 🔧 Available Scripts
+
+### Server Scripts
+```bash
+npm run dev          # Start development server
+npm start            # Start production server
+npm run migrate      # Run database migrations
+npm run seed         # Seed database with sample data
+npm test             # Run tests
+npm run lint         # Run ESLint
+```
+
+### Client Scripts
+```bash
+npm start            # Start development server
+npm run build        # Build for production
+npm test             # Run tests
+npm run eject        # Eject from Create React App
+```
+
+## 🔐 Authentication
+
+### Local Authentication
+- Email/password registration and login
+- Password hashing with bcrypt
+- Email verification (optional)
+- Password reset functionality
+
+### Google OAuth
+- One-click Google sign-in
+- Automatic account creation
+- Profile information sync
+
+### JWT Tokens
+- Access tokens (short-lived)
+- Refresh tokens (long-lived)
+- Automatic token rotation
+- Secure HTTP-only cookies
+
+## 🛡️ Security
+
+### Implemented Security Measures
+- **Rate Limiting**: Prevents brute force attacks
+- **Input Validation**: Server-side validation with express-validator
+- **SQL Injection Protection**: Parameterized queries
+- **XSS Protection**: Input sanitization
+- **CSRF Protection**: CSRF tokens for forms
+- **Security Headers**: Helmet middleware
+- **CORS Configuration**: Controlled cross-origin requests
+
+## 📖 API Documentation
+
+Detailed API documentation is available in [`docs/API.md`](docs/API.md).
+
+### Quick API Overview
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/google` - Google OAuth
+- `GET /api/users/profile` - Get user profile
+- `PUT /api/users/profile` - Update profile
+- `GET /api/dashboard/stats` - Dashboard data
+
+## 🚀 Deployment
+
+### Production Deployment Options
+
+1. **Docker Deployment** (Recommended)
+   ```bash
+   docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+   ```
+
+2. **Manual Deployment**
+   - See [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for detailed instructions
+
+3. **Cloud Platforms**
+   - Heroku
+   - AWS EC2/ECS
+   - DigitalOcean
+   - Google Cloud Platform
+
+## 🧪 Testing
+
+### Running Tests
+```bash
+# Backend tests
+cd server
+npm test
+
+# Frontend tests
+cd client
+npm test
+
+# E2E tests
+npm run test:e2e
+```
+
+### Test Coverage
+- Unit tests for utilities and services
+- Integration tests for API endpoints
+- Component tests for React components
+- E2E tests for user workflows
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit changes (`git commit -m 'Add amazing feature'`)
+4. Push to branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Port already in use**
