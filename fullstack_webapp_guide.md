@@ -1003,6 +1003,7 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+```
 
 ---
 
@@ -2618,6 +2619,1365 @@ $transition: all 0.15s ease-in-out;
     font-size: 1.5rem;
   }
 }
+```
+
+
+---
+
+## client/src/styles/variables.scss
+
+```scss
+// Color Variables
+:root {
+  // Primary Colors
+  --color-primary: #3b82f6;
+  --color-primary-light: #60a5fa;
+  --color-primary-dark: #1d4ed8;
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+
+  // Secondary Colors
+  --color-secondary: #64748b;
+  --color-secondary-light: #94a3b8;
+  --color-secondary-dark: #475569;
+
+  // Accent Colors
+  --color-accent: #f59e0b;
+  --color-accent-light: #fbbf24;
+  --color-accent-dark: #d97706;
+
+  // Status Colors
+  --color-success: #10b981;
+  --color-success-light: #34d399;
+  --color-success-dark: #059669;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fbbf24;
+  --color-warning-dark: #d97706;
+  --color-error: #ef4444;
+  --color-error-light: #f87171;
+  --color-error-dark: #dc2626;
+  --color-info: #06b6d4;
+  --color-info-light: #22d3ee;
+  --color-info-dark: #0891b2;
+
+  // Neutral Colors
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  // Background Colors
+  --bg-primary: var(--color-white);
+  --bg-secondary: var(--color-gray-50);
+  --bg-tertiary: var(--color-gray-100);
+  --bg-dark: var(--color-gray-900);
+  --bg-card: var(--color-white);
+  --bg-overlay: rgba(0, 0, 0, 0.5);
+
+  // Text Colors
+  --text-primary: var(--color-gray-900);
+  --text-secondary: var(--color-gray-600);
+  --text-tertiary: var(--color-gray-500);
+  --text-inverse: var(--color-white);
+  --text-muted: var(--color-gray-400);
+
+  // Border Colors
+  --border-primary: var(--color-gray-200);
+  --border-secondary: var(--color-gray-300);
+  --border-focus: var(--color-primary);
+  --border-error: var(--color-error);
+
+  // Shadow Variables
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  // Spacing Variables
+  --spacing-xs: 0.25rem;   // 4px
+  --spacing-sm: 0.5rem;    // 8px
+  --spacing-md: 1rem;      // 16px
+  --spacing-lg: 1.5rem;    // 24px
+  --spacing-xl: 2rem;      // 32px
+  --spacing-2xl: 3rem;     // 48px
+  --spacing-3xl: 4rem;     // 64px
+
+  // Typography Variables
+  --font-family-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-family-mono: 'Fira Code', 'Monaco', 'Consolas', monospace;
+  
+  --font-size-xs: 0.75rem;     // 12px
+  --font-size-sm: 0.875rem;    // 14px
+  --font-size-base: 1rem;      // 16px
+  --font-size-lg: 1.125rem;    // 18px
+  --font-size-xl: 1.25rem;     // 20px
+  --font-size-2xl: 1.5rem;     // 24px
+  --font-size-3xl: 1.875rem;   // 30px
+  --font-size-4xl: 2.25rem;    // 36px
+  --font-size-5xl: 3rem;       // 48px
+
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.75;
+
+  // Border Radius Variables
+  --radius-sm: 0.25rem;    // 4px
+  --radius-md: 0.375rem;   // 6px
+  --radius-lg: 0.5rem;     // 8px
+  --radius-xl: 0.75rem;    // 12px
+  --radius-2xl: 1rem;      // 16px
+  --radius-full: 9999px;
+
+  // Transition Variables
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+
+  // Z-Index Variables
+  --z-dropdown: 1000;
+  --z-sticky: 1010;
+  --z-fixed: 1020;
+  --z-modal-backdrop: 1030;
+  --z-modal: 1040;
+  --z-popover: 1050;
+  --z-tooltip: 1060;
+  --z-toast: 1070;
+
+  // Layout Variables
+  --container-max-width: 1200px;
+  --sidebar-width: 280px;
+  --header-height: 64px;
+  --footer-height: 80px;
+}
+
+// Dark Mode Variables
+[data-theme="dark"] {
+  --bg-primary: var(--color-gray-900);
+  --bg-secondary: var(--color-gray-800);
+  --bg-tertiary: var(--color-gray-700);
+  --bg-card: var(--color-gray-800);
+  
+  --text-primary: var(--color-gray-100);
+  --text-secondary: var(--color-gray-300);
+  --text-tertiary: var(--color-gray-400);
+  
+  --border-primary: var(--color-gray-700);
+  --border-secondary: var(--color-gray-600);
+}
+
+// Component-specific Variables
+:root {
+  // Button Variables
+  --btn-padding-x: 1rem;
+  --btn-padding-y: 0.5rem;
+  --btn-font-size: var(--font-size-sm);
+  --btn-border-radius: var(--radius-md);
+  --btn-transition: var(--transition-fast);
+
+  // Input Variables
+  --input-padding-x: 0.75rem;
+  --input-padding-y: 0.5rem;
+  --input-font-size: var(--font-size-sm);
+  --input-border-radius: var(--radius-md);
+  --input-border-width: 1px;
+  --input-transition: var(--transition-fast);
+
+  // Card Variables
+  --card-padding: 1.5rem;
+  --card-border-radius: var(--radius-lg);
+  --card-shadow: var(--shadow-md);
+
+  // Modal Variables
+  --modal-max-width: 32rem;
+  --modal-padding: 1.5rem;
+  --modal-border-radius: var(--radius-lg);
+}
+
+// Breakpoint Variables (for use in JavaScript)
+:root {
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+}
+
+// Animation Variables
+:root {
+  --animation-fade-in: fadeIn 0.3s ease-in-out;
+  --animation-slide-up: slideUp 0.3s ease-out;
+  --animation-slide-down: slideDown 0.3s ease-out;
+  --animation-scale-in: scaleIn 0.2s ease-out;
+  --animation-bounce: bounce 0.5s ease-in-out;
+}
+
+// Keyframe Animations
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from { 
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes bounce {
+  0%, 20%, 53%, 80%, 100% {
+    transform: translate3d(0, 0, 0);
+  }
+  40%, 43% {
+    transform: translate3d(0, -30px, 0);
+  }
+  70% {
+    transform: translate3d(0, -15px, 0);
+  }
+  90% {
+    transform: translate3d(0, -4px, 0);
+  }
+}
+```
+
+---
+
+## client/src/utils/constants.js
+
+```javascript
+// API Configuration
+export const API_CONFIG = {
+  BASE_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  TIMEOUT: 30000, // 30 seconds
+  RETRY_ATTEMPTS: 3,
+  RETRY_DELAY: 1000, // 1 second
+};
+
+// Authentication Constants
+export const AUTH_CONFIG = {
+  TOKEN_KEY: 'accessToken',
+  REFRESH_TOKEN_KEY: 'refreshToken',
+  USER_KEY: 'user',
+  TOKEN_EXPIRY_KEY: 'tokenExpiry',
+  REMEMBER_ME_KEY: 'rememberMe',
+  LOGIN_REDIRECT_KEY: 'loginRedirect',
+};
+
+// Application Routes
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
+  VERIFY_EMAIL: '/verify-email',
+  DASHBOARD: '/dashboard',
+  PROFILE: '/profile',
+  SETTINGS: '/settings',
+  USERS: '/users',
+  ADMIN: '/admin',
+  NOT_FOUND: '/404',
+  UNAUTHORIZED: '/unauthorized',
+  SERVER_ERROR: '/500',
+};
+
+// User Roles and Permissions
+export const USER_ROLES = {
+  ADMIN: 'admin',
+  MODERATOR: 'moderator',
+  USER: 'user',
+  GUEST: 'guest',
+};
+
+export const PERMISSIONS = {
+  CREATE_USER: 'create:user',
+  READ_USER: 'read:user',
+  UPDATE_USER: 'update:user',
+  DELETE_USER: 'delete:user',
+  MANAGE_USERS: 'manage:users',
+  ADMIN_ACCESS: 'admin:access',
+};
+
+// HTTP Status Codes
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+  INTERNAL_SERVER_ERROR: 500,
+  BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
+};
+
+// Form Validation Constants
+export const VALIDATION_RULES = {
+  EMAIL: {
+    PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    MAX_LENGTH: 255,
+  },
+  PASSWORD: {
+    MIN_LENGTH: 8,
+    MAX_LENGTH: 128,
+    PATTERN: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+  },
+  NAME: {
+    MIN_LENGTH: 2,
+    MAX_LENGTH: 100,
+    PATTERN: /^[a-zA-Z\s'-]+$/,
+  },
+  PHONE: {
+    PATTERN: /^[\+]?[1-9][\d]{0,15}$/,
+  },
+  USERNAME: {
+    MIN_LENGTH: 3,
+    MAX_LENGTH: 30,
+    PATTERN: /^[a-zA-Z0-9_-]+$/,
+  },
+};
+
+// File Upload Constants
+export const FILE_UPLOAD = {
+  MAX_SIZE: 5 * 1024 * 1024, // 5MB
+  ALLOWED_TYPES: {
+    IMAGES: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
+    DOCUMENTS: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+    EXCEL: ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+  },
+  AVATAR_MAX_SIZE: 2 * 1024 * 1024, // 2MB
+};
+
+// Pagination Constants
+export const PAGINATION = {
+  DEFAULT_PAGE: 1,
+  DEFAULT_LIMIT: 10,
+  MAX_LIMIT: 100,
+  PAGE_SIZE_OPTIONS: [10, 25, 50, 100],
+};
+
+// Date/Time Constants
+export const DATE_FORMATS = {
+  SHORT: 'MM/DD/YYYY',
+  LONG: 'MMMM DD, YYYY',
+  WITH_TIME: 'MM/DD/YYYY HH:mm',
+  TIME_ONLY: 'HH:mm',
+  ISO: 'YYYY-MM-DDTHH:mm:ss.SSSZ',
+  API: 'YYYY-MM-DD',
+};
+
+export const TIME_ZONES = {
+  UTC: 'UTC',
+  EST: 'America/New_York',
+  PST: 'America/Los_Angeles',
+  GMT: 'Europe/London',
+};
+
+// UI Constants
+export const UI_CONFIG = {
+  TOAST_DURATION: 5000, // 5 seconds
+  DEBOUNCE_DELAY: 300, // 300ms
+  ANIMATION_DURATION: 300, // 300ms
+  MOBILE_BREAKPOINT: 768, // px
+  TABLET_BREAKPOINT: 1024, // px
+  DESKTOP_BREAKPOINT: 1280, // px
+};
+
+// Theme Constants
+export const THEMES = {
+  LIGHT: 'light',
+  DARK: 'dark',
+  SYSTEM: 'system',
+};
+
+export const THEME_COLORS = {
+  PRIMARY: '#3b82f6',
+  SECONDARY: '#64748b',
+  SUCCESS: '#10b981',
+  WARNING: '#f59e0b',
+  ERROR: '#ef4444',
+  INFO: '#06b6d4',
+};
+
+// Storage Keys (LocalStorage/SessionStorage)
+export const STORAGE_KEYS = {
+  THEME: 'app_theme',
+  LANGUAGE: 'app_language',
+  SIDEBAR_COLLAPSED: 'sidebar_collapsed',
+  TABLE_SETTINGS: 'table_settings',
+  FORM_DRAFTS: 'form_drafts',
+  RECENT_SEARCHES: 'recent_searches',
+  USER_PREFERENCES: 'user_preferences',
+};
+
+// Error Messages
+export const ERROR_MESSAGES = {
+  NETWORK_ERROR: 'Network error. Please check your connection.',
+  SERVER_ERROR: 'Server error. Please try again later.',
+  VALIDATION_ERROR: 'Please fix the validation errors.',
+  UNAUTHORIZED: 'You are not authorized to perform this action.',
+  FORBIDDEN: 'Access denied.',
+  NOT_FOUND: 'The requested resource was not found.',
+  TIMEOUT: 'Request timeout. Please try again.',
+  FILE_TOO_LARGE: 'File size exceeds the maximum limit.',
+  INVALID_FILE_TYPE: 'Invalid file type.',
+  GENERIC_ERROR: 'An error occurred. Please try again.',
+};
+
+// Success Messages
+export const SUCCESS_MESSAGES = {
+  SAVE_SUCCESS: 'Changes saved successfully.',
+  CREATE_SUCCESS: 'Created successfully.',
+  UPDATE_SUCCESS: 'Updated successfully.',
+  DELETE_SUCCESS: 'Deleted successfully.',
+  LOGIN_SUCCESS: 'Logged in successfully.',
+  LOGOUT_SUCCESS: 'Logged out successfully.',
+  EMAIL_SENT: 'Email sent successfully.',
+  PASSWORD_RESET: 'Password reset successfully.',
+  PROFILE_UPDATED: 'Profile updated successfully.',
+};
+
+// Loading States
+export const LOADING_STATES = {
+  IDLE: 'idle',
+  LOADING: 'loading',
+  SUCCESS: 'success',
+  ERROR: 'error',
+};
+
+// Modal Types
+export const MODAL_TYPES = {
+  CONFIRM: 'confirm',
+  ALERT: 'alert',
+  FORM: 'form',
+  INFO: 'info',
+  CUSTOM: 'custom',
+};
+
+// Table Constants
+export const TABLE_CONFIG = {
+  DEFAULT_SORT: 'createdAt',
+  DEFAULT_ORDER: 'desc',
+  ROW_ACTIONS: {
+    VIEW: 'view',
+    EDIT: 'edit',
+    DELETE: 'delete',
+    DUPLICATE: 'duplicate',
+  },
+};
+
+// Chart/Graph Constants
+export const CHART_COLORS = [
+  '#3b82f6', '#ef4444', '#10b981', '#f59e0b',
+  '#8b5cf6', '#06b6d4', '#f97316', '#84cc16',
+  '#ec4899', '#6366f1', '#14b8a6', '#f43f5e',
+];
+
+// Social Media Constants
+export const SOCIAL_MEDIA = {
+  FACEBOOK: 'facebook',
+  TWITTER: 'twitter',
+  LINKEDIN: 'linkedin',
+  INSTAGRAM: 'instagram',
+  GITHUB: 'github',
+  GOOGLE: 'google',
+};
+
+// Notification Types
+export const NOTIFICATION_TYPES = {
+  INFO: 'info',
+  SUCCESS: 'success',
+  WARNING: 'warning',
+  ERROR: 'error',
+};
+
+// Language Constants
+export const LANGUAGES = {
+  EN: 'en',
+  ES: 'es',
+  FR: 'fr',
+  DE: 'de',
+  IT: 'it',
+  PT: 'pt',
+  RU: 'ru',
+  ZH: 'zh',
+  JA: 'ja',
+  KO: 'ko',
+};
+
+// Export all constants as default
+export default {
+  API_CONFIG,
+  AUTH_CONFIG,
+  ROUTES,
+  USER_ROLES,
+  PERMISSIONS,
+  HTTP_STATUS,
+  VALIDATION_RULES,
+  FILE_UPLOAD,
+  PAGINATION,
+  DATE_FORMATS,
+  TIME_ZONES,
+  UI_CONFIG,
+  THEMES,
+  THEME_COLORS,
+  STORAGE_KEYS,
+  ERROR_MESSAGES,
+  SUCCESS_MESSAGES,
+  LOADING_STATES,
+  MODAL_TYPES,
+  TABLE_CONFIG,
+  CHART_COLORS,
+  SOCIAL_MEDIA,
+  NOTIFICATION_TYPES,
+  LANGUAGES,
+};
+```
+
+## client/src/utils/helpers.js
+
+```javascript
+// ES6+ utility functions for common operations
+
+// Format date with ES6+ template literals
+export const formatDate = (date, format = 'short') => {
+    const dateObj = new Date(date);
+    
+    const formats = {
+        short: dateObj.toLocaleDateString(),
+        long: dateObj.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        }),
+        time: dateObj.toLocaleTimeString(),
+        datetime: dateObj.toLocaleString()
+    };
+    
+    return formats[format] || formats.short;
+};
+
+// Debounce function using ES6+ arrow functions and closures
+export const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(null, args), delay);
+    };
+};
+
+// Throttle function for performance optimization
+export const throttle = (func, limit) => {
+    let inThrottle;
+    return function(...args) {
+        if (!inThrottle) {
+            func.apply(this, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    };
+};
+
+// Validate email with ES6+ regex
+export const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
+
+// Validate password strength
+export const validatePassword = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password);
+    
+    return {
+        isValid: password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers,
+        requirements: {
+            length: password.length >= minLength,
+            uppercase: hasUpperCase,
+            lowercase: hasLowerCase,
+            numbers: hasNumbers,
+            special: hasSpecialChar
+        }
+    };
+};
+
+// Generate random string for tokens/IDs
+export const generateRandomString = (length = 16) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    return Array.from({ length }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+};
+
+// Format file size in human readable format
+export const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+// Capitalize first letter of each word
+export const capitalizeWords = (str) => {
+    return str.replace(/\w\S*/g, (txt) => 
+        txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase()
+    );
+};
+
+// Deep clone object using ES6+ spread and recursion
+export const deepClone = (obj) => {
+    if (obj === null || typeof obj !== 'object') return obj;
+    if (obj instanceof Date) return new Date(obj.getTime());
+    if (obj instanceof Array) return obj.map(item => deepClone(item));
+    if (typeof obj === 'object') {
+        const clonedObj = {};
+        Object.keys(obj).forEach(key => {
+            clonedObj[key] = deepClone(obj[key]);
+        });
+        return clonedObj;
+    }
+};
+
+// Check if object is empty
+export const isEmpty = (obj) => {
+    return obj === null || obj === undefined || 
+           (typeof obj === 'object' && Object.keys(obj).length === 0) ||
+           (typeof obj === 'string' && obj.trim().length === 0);
+};
+
+// Format currency
+export const formatCurrency = (amount, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: currency
+    }).format(amount);
+};
+
+// Get initials from name
+export const getInitials = (name) => {
+    return name.split(' ')
+        .map(word => word.charAt(0).toUpperCase())
+        .join('')
+        .substring(0, 2);
+};
+
+// Storage helpers (with fallback for server-side rendering)
+export const storage = {
+    get: (key) => {
+        try {
+            if (typeof window !== 'undefined') {
+                const item = localStorage.getItem(key);
+                return item ? JSON.parse(item) : null;
+            }
+        } catch (error) {
+            console.error('Error getting from localStorage:', error);
+        }
+        return null;
+    },
+    
+    set: (key, value) => {
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(key, JSON.stringify(value));
+            }
+        } catch (error) {
+            console.error('Error setting to localStorage:', error);
+        }
+    },
+    
+    remove: (key) => {
+        try {
+            if (typeof window !== 'undefined') {
+                localStorage.removeItem(key);
+            }
+        } catch (error) {
+            console.error('Error removing from localStorage:', error);
+        }
+    }
+};
+
+// URL helpers
+export const getQueryParams = () => {
+    if (typeof window === 'undefined') return {};
+    
+    const params = new URLSearchParams(window.location.search);
+    const result = {};
+    
+    for (let [key, value] of params) {
+        result[key] = value;
+    }
+    
+    return result;
+};
+
+export const updateQueryParams = (params) => {
+    if (typeof window === 'undefined') return;
+    
+    const url = new URL(window.location);
+    Object.keys(params).forEach(key => {
+        if (params[key]) {
+            url.searchParams.set(key, params[key]);
+        } else {
+            url.searchParams.delete(key);
+        }
+    });
+    
+    window.history.replaceState({}, '', url);
+};
+```
+
+---
+
+## client/src/App.jsx
+
+```jsx
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
+import { checkAuthStatus } from './store/authSlice';
+
+// Layout Components
+import Header from './components/Layout/Header';
+import Footer from './components/Layout/Footer';
+import Sidebar from './components/Layout/Sidebar';
+
+// Page Components
+import Home from './pages/Home';
+import About from './pages/About';
+import Contact from './pages/Contact';
+
+// Auth Components
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
+
+// Dashboard Components
+import Dashboard from './components/Dashboard/Dashboard';
+import UserProfile from './components/Dashboard/UserProfile';
+
+// Hooks
+import { useAuth } from './hooks/useAuth';
+
+// Styles
+import './styles/globals.css';
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+    const { isAuthenticated, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center min-vh-100">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+    
+    return isAuthenticated ? children : <Navigate to="/login" replace />;
+};
+
+// Public Route Component (redirect if authenticated)
+const PublicRoute = ({ children }) => {
+    const { isAuthenticated, loading } = useAuth();
+    
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center min-vh-100">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+    
+    return !isAuthenticated ? children : <Navigate to="/dashboard" replace />;
+};
+
+// Main App Component
+const App = () => {
+    const dispatch = useDispatch();
+    const { isAuthenticated, loading } = useSelector(state => state.auth);
+
+    // Check authentication status on app load
+    useEffect(() => {
+        dispatch(checkAuthStatus());
+    }, [dispatch]);
+
+    // Show loading spinner during initial auth check
+    if (loading) {
+        return (
+            <div className="d-flex justify-content-center align-items-center min-vh-100">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <Router>
+            <div className="App d-flex flex-column min-vh-100">
+                <Header />
+                
+                <div className={`main-content flex-grow-1 ${isAuthenticated ? 'd-flex' : ''}`}>
+                    {/* Sidebar for authenticated users */}
+                    {isAuthenticated && <Sidebar />}
+                    
+                    {/* Main content area */}
+                    <div className={`content ${isAuthenticated ? 'flex-grow-1' : 'container-fluid'}`}>
+                        <Routes>
+                            {/* Public Routes */}
+                            <Route path="/" element={<Home />} />
+                            <Route path="/about" element={<About />} />
+                            <Route path="/contact" element={<Contact />} />
+                            
+                            {/* Auth Routes (only for non-authenticated users) */}
+                            <Route 
+                                path="/login" 
+                                element={
+                                    <PublicRoute>
+                                        <Login />
+                                    </PublicRoute>
+                                } 
+                            />
+                            <Route 
+                                path="/register" 
+                                element={
+                                    <PublicRoute>
+                                        <Register />
+                                    </PublicRoute>
+                                } 
+                            />
+                            
+                            {/* Protected Routes (only for authenticated users) */}
+                            <Route 
+                                path="/dashboard" 
+                                element={
+                                    <ProtectedRoute>
+                                        <Dashboard />
+                                    </ProtectedRoute>
+                                } 
+                            />
+                            <Route 
+                                path="/profile" 
+                                element={
+                                    <ProtectedRoute>
+                                        <UserProfile />
+                                    </ProtectedRoute>
+                                } 
+                            />
+                            
+                            {/* Catch all route - 404 */}
+                            <Route 
+                                path="*" 
+                                element={
+                                    <div className="container mt-5 text-center">
+                                        <h1>404 - Page Not Found</h1>
+                                        <p>The page you're looking for doesn't exist.</p>
+                                        <a href="/" className="btn btn-primary">Go Home</a>
+                                    </div>
+                                } 
+                            />
+                        </Routes>
+                    </div>
+                </div>
+                
+                <Footer />
+            </div>
+        </Router>
+    );
+};
+
+export default App;
+```
+
+---
+
+## client/src/index.js
+
+```javascript
+import React from 'react';
+import { createRoot } from 'react-dom/client'; // ES6+ React 18 syntax
+import { Provider } from 'react-redux';
+import { store } from './store';
+import App from './App';
+
+// Import global styles
+import 'bootstrap/dist/css/bootstrap.min.css'; // Bootstrap CSS
+import './styles/globals.css'; // Custom global styles
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component {
+    constructor(props) {
+        super(props);
+        this.state = { hasError: false, error: null };
+    }
+
+    static getDerivedStateFromError(error) {
+        // Update state so the next render will show the fallback UI
+        return { hasError: true, error };
+    }
+
+    componentDidCatch(error, errorInfo) {
+        // Log error to console and external service
+        console.error('Error caught by boundary:', error, errorInfo);
+        
+        // In production, you might want to log this to an error reporting service
+        // like Sentry, LogRocket, etc.
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="container mt-5 text-center">
+                    <div className="alert alert-danger">
+                        <h4>Something went wrong!</h4>
+                        <p>We're sorry, but something unexpected happened.</p>
+                        <button 
+                            className="btn btn-primary"
+                            onClick={() => window.location.reload()}
+                        >
+                            Reload Page
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}
+
+// Get root element
+const container = document.getElementById('root');
+
+// Create root using React 18's createRoot API (ES6+ syntax)
+const root = createRoot(container);
+
+// Render app with error boundary and Redux provider
+root.render(
+    <React.StrictMode>
+        <ErrorBoundary>
+            <Provider store={store}>
+                <App />
+            </Provider>
+        </ErrorBoundary>
+    </React.StrictMode>
+);
+
+// Service Worker registration (optional)
+// Uncomment below if you want to enable service worker for PWA features
+/*
+if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then((registration) => {
+                console.log('SW registered: ', registration);
+            })
+            .catch((registrationError) => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    });
+}
+*/
+
+// Hot Module Replacement (HMR) for development
+if (process.env.NODE_ENV === 'development' && module.hot) {
+    module.hot.accept('./App', () => {
+        const NextApp = require('./App').default;
+        root.render(
+            <React.StrictMode>
+                <ErrorBoundary>
+                    <Provider store={store}>
+                        <NextApp />
+                    </Provider>
+                </ErrorBoundary>
+            </React.StrictMode>
+        );
+    });
+}
+
+// Performance monitoring (optional)
+// Uncomment and modify as needed for performance tracking
+/*
+import { getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+
+function sendToAnalytics(metric) {
+    // Send metrics to your analytics service
+    console.log(metric);
+}
+
+getCLS(sendToAnalytics);
+getFID(sendToAnalytics);
+getFCP(sendToAnalytics);
+getLCP(sendToAnalytics);
+getTTFB(sendToAnalytics);
+*/
+```
+
+---
+
+## client/package.json
+
+```json
+{
+  "name": "fullstack-client",
+  "version": "1.0.0",
+  "description": "Full-stack web application frontend built with React, Redux, and modern web technologies",
+  "private": true,
+  "homepage": ".",
+  "dependencies": {
+    "@reduxjs/toolkit": "^1.9.7",
+    "@testing-library/jest-dom": "^5.17.0",
+    "@testing-library/react": "^13.4.0",
+    "@testing-library/user-event": "^14.5.2",
+    "axios": "^1.6.0",
+    "bootstrap": "^5.3.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-redux": "^8.1.3",
+    "react-router-dom": "^6.17.0",
+    "react-scripts": "5.0.1",
+    "redux": "^4.2.1",
+    "redux-persist": "^6.0.0",
+    "sass": "^1.69.5",
+    "web-vitals": "^3.5.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.37",
+    "@types/react-dom": "^18.2.15",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "prop-types": "^15.8.1",
+    "tailwindcss": "^3.3.5"
+  },
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test",
+    "eject": "react-scripts eject",
+    "lint": "eslint src --ext .js,.jsx",
+    "lint:fix": "eslint src --ext .js,.jsx --fix",
+    "format": "prettier --write src/**/*.{js,jsx,css,scss}",
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js"
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ],
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-console": "off",
+      "react-hooks/exhaustive-deps": "warn"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "proxy": "http://localhost:5000",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "keywords": [
+    "react",
+    "redux",
+    "fullstack",
+    "authentication",
+    "jwt",
+    "oauth",
+    "bootstrap",
+    "tailwindcss",
+    "typescript"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/fullstack-webapp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/fullstack-webapp/issues"
+  }
+}
+```
+
+---
+
+## client/tailwind.config.js
+
+```javascript
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  // Content paths for Tailwind to scan for classes
+  content: [
+    "./src/**/*.{js,jsx,ts,tsx}",
+    "./public/index.html"
+  ],
+  
+  // Dark mode configuration
+  darkMode: 'class', // Enable class-based dark mode
+  
+  theme: {
+    extend: {
+      // Custom colors with ES6+ object shorthand
+      colors: {
+        primary: {
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6', // Main primary color
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
+        },
+        secondary: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b', // Main secondary color
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+        },
+        success: '#10b981',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#06b6d4'
+      },
+      
+      // Custom fonts
+      fontFamily: {
+        sans: ['Roboto', 'system-ui', 'sans-serif'],
+        serif: ['Georgia', 'serif'],
+        mono: ['Monaco', 'monospace']
+      },
+      
+      // Custom spacing
+      spacing: {
+        '18': '4.5rem',
+        '88': '22rem',
+        '128': '32rem'
+      },
+      
+      // Custom border radius
+      borderRadius: {
+        'xl': '1rem',
+        '2xl': '1.5rem',
+        '3xl': '2rem'
+      },
+      
+      // Custom box shadows
+      boxShadow: {
+        'custom': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'custom-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+        'inner-custom': 'inset 0 2px 4px 0 rgba(0, 0, 0, 0.06)'
+      },
+      
+      // Custom animations
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-in-out',
+        'slide-up': 'slideUp 0.3s ease-out',
+        'slide-down': 'slideDown 0.3s ease-out',
+        'pulse-slow': 'pulse 3s infinite'
+      },
+      
+      // Custom keyframes
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' }
+        },
+        slideUp: {
+          '0%': { transform: 'translateY(100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
+        },
+        slideDown: {
+          '0%': { transform: 'translateY(-100%)', opacity: '0' },
+          '100%': { transform: 'translateY(0)', opacity: '1' }
+        }
+      },
+      
+      // Custom breakpoints
+      screens: {
+        'xs': '475px',
+        '3xl': '1600px'
+      },
+      
+      // Custom typography
+      fontSize: {
+        'xs': ['0.75rem', { lineHeight: '1rem' }],
+        'sm': ['0.875rem', { lineHeight: '1.25rem' }],
+        'base': ['1rem', { lineHeight: '1.5rem' }],
+        'lg': ['1.125rem', { lineHeight: '1.75rem' }],
+        'xl': ['1.25rem', { lineHeight: '1.75rem' }],
+        '2xl': ['1.5rem', { lineHeight: '2rem' }],
+        '3xl': ['1.875rem', { lineHeight: '2.25rem' }],
+        '4xl': ['2.25rem', { lineHeight: '2.5rem' }],
+        '5xl': ['3rem', { lineHeight: '1' }],
+        '6xl': ['3.75rem', { lineHeight: '1' }]
+      }
+    }
+  },
+  
+  // Plugins for additional functionality
+  plugins: [
+    // Forms plugin for styling form elements
+    require('@tailwindcss/forms')({
+      strategy: 'class' // Use class-based form styling
+    }),
+    
+    // Typography plugin for rich text
+    require('@tailwindcss/typography'),
+    
+    // Aspect ratio plugin for responsive media
+    require('@tailwindcss/aspect-ratio'),
+    
+    // Custom plugin for utilities
+    function({ addUtilities, addComponents, theme }) {
+      // Custom utilities
+      const newUtilities = {
+        '.text-shadow': {
+          textShadow: '2px 2px 4px rgba(0,0,0,0.10)'
+        },
+        '.text-shadow-md': {
+          textShadow: '4px 4px 8px rgba(0,0,0,0.12)'
+        },
+        '.text-shadow-lg': {
+          textShadow: '15px 15px 30px rgba(0,0,0,0.15)'
+        },
+        '.text-shadow-none': {
+          textShadow: 'none'
+        },
+        '.writing-vertical': {
+          writingMode: 'vertical-rl'
+        }
+      };
+      
+      // Custom components
+      const newComponents = {
+        '.btn-custom': {
+          padding: theme('spacing.2') + ' ' + theme('spacing.4'),
+          borderRadius: theme('borderRadius.md'),
+          fontWeight: theme('fontWeight.medium'),
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-1px)',
+            boxShadow: theme('boxShadow.lg')
+          }
+        },
+        '.card-custom': {
+          backgroundColor: theme('colors.white'),
+          borderRadius: theme('borderRadius.lg'),
+          padding: theme('spacing.6'),
+          boxShadow: theme('boxShadow.custom'),
+          border: '1px solid ' + theme('colors.gray.200')
+        }
+      };
+      
+      addUtilities(newUtilities);
+      addComponents(newComponents);
+    }
+  ],
+  
+  // CorePlugins configuration
+  corePlugins: {
+    // Disable unused core plugins for smaller bundle size
+    preflight: true, // Keep CSS reset
+    container: true, // Keep container utilities
+  },
+  
+  // Safelist for dynamic classes that might not be detected
+  safelist: [
+    'bg-red-500',
+    'bg-green-500',
+    'bg-blue-500',
+    'text-red-500',
+    'text-green-500',
+    'text-blue-500',
+    // Add patterns for dynamic classes
+    {
+      pattern: /bg-(red|green|blue|yellow|indigo|purple|pink)-(100|200|300|400|500|600|700|800|900)/
+    },
+    {
+      pattern: /text-(red|green|blue|yellow|indigo|purple|pink)-(100|200|300|400|500|600|700|800|900)/
+    }
+  ]
+};
 ```
 
 ---
