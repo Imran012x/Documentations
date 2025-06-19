@@ -2622,26 +2622,28 @@ $transition: all 0.15s ease-in-out;
 
 ---
 
+
 ## server/controllers/authController.js
 
 ```javascript
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { validationResult } = require('express-validator');
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
 const authService = require('../services/authService');
 const tokenService = require('../services/tokenService');
+const { validationResult } = require('express-validator');
 
+// ES6+ class-based controller (legacy: function-based)
 class AuthController {
-    // Register new user
-    async register(req, res) {
+    // Register new user with ES6+ async/await
+    static async register(req, res) {
         try {
-            // Check validation errors
+            // Validate input
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
                     errors: errors.array()
                 });
             }
@@ -2651,14 +2653,14 @@ class AuthController {
             // Check if user already exists
             const existingUser = await User.findOne({ email });
             if (existingUser) {
-                return res.status(409).json({
+                return res.status(400).json({
                     success: false,
-                    message: 'User already exists with this email'
+                    message: 'User already exists'
                 });
             }
 
-            // Hash password with salt
-            const saltRounds = 12;
+            // Hash password with bcrypt + salt
+            const saltRounds = 12; // ES6+ const instead of var
             const hashedPassword = await bcrypt.hash(password, saltRounds);
 
             // Create new user
@@ -2666,19 +2668,28 @@ class AuthController {
                 name,
                 email,
                 password: hashedPassword,
-                createdAt: new Date()
+                provider: 'local'
             });
 
             await user.save();
 
-            // Remove password from response
-            const userResponse = user.toObject();
-            delete userResponse.password;
+            // Generate tokens
+            const { accessToken, refreshToken } = await tokenService.generateTokens(user._id);
+
+            // Save refresh token
+            await tokenService.saveRefreshToken(user._id, refreshToken);
 
             res.status(201).json({
                 success: true,
                 message: 'User registered successfully',
-                user: userResponse
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role
+                },
+                accessToken,
+                refreshToken
             });
 
         } catch (error) {
@@ -2690,14 +2701,13 @@ class AuthController {
         }
     }
 
-    // Login user
-    async login(req, res) {
+    // Login user with local strategy
+    static async login(req, res) {
         try {
             const errors = validationResult(req);
             if (!errors.isEmpty()) {
                 return res.status(400).json({
                     success: false,
-                    message: 'Validation failed',
                     errors: errors.array()
                 });
             }
@@ -2705,7 +2715,7 @@ class AuthController {
             const { email, password } = req.body;
 
             // Find user by email
-            const user = await User.findOne({ email });
+            const user = await User.findOne({ email }).select('+password');
             if (!user) {
                 return res.status(401).json({
                     success: false,
@@ -2714,42 +2724,38 @@ class AuthController {
             }
 
             // Verify password
-            const isPasswordValid = await bcrypt.compare(password, user.password);
-            if (!isPasswordValid) {
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid credentials'
                 });
             }
 
-            // Generate tokens
-            const tokens = await tokenService.generateTokens({
-                id: user._id,
-                email: user.email,
-                role: user.role
-            });
-
             // Update last login
             user.lastLogin = new Date();
+            user.loginCount = (user.loginCount || 0) + 1;
             await user.save();
 
-            // Set HTTP-only cookie for refresh token
-            res.cookie('refreshToken', tokens.refreshToken, {
-                httpOnly: true,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'strict',
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
+            // Generate tokens
+            const { accessToken, refreshToken } = await tokenService.generateTokens(user._id);
+            await tokenService.saveRefreshToken(user._id, refreshToken);
 
-            // Remove sensitive data
-            const userResponse = user.toObject();
-            delete userResponse.password;
+            // Create session if using session-based auth
+            req.session.userId = user._id;
 
             res.json({
                 success: true,
                 message: 'Login successful',
-                token: tokens.accessToken,
-                user: userResponse
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    lastLogin: user.lastLogin
+                },
+                accessToken,
+                refreshToken
             });
 
         } catch (error) {
@@ -2762,15 +2768,23 @@ class AuthController {
     }
 
     // Logout user
-    async logout(req, res) {
+    static async logout(req, res) {
         try {
-            const refreshToken = req.cookies.refreshToken;
-            
+            const { refreshToken } = req.body;
+            const userId = req.user?.id;
+
+            // Remove refresh token from database
             if (refreshToken) {
-                await tokenService.revokeRefreshToken(refreshToken);
+                await RefreshToken.deleteOne({ token: refreshToken });
             }
 
-            res.clearCookie('refreshToken');
+            // Destroy session
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error('Session destruction error:', err);
+                }
+            });
+
             res.json({
                 success: true,
                 message: 'Logout successful'
@@ -2785,4 +2799,2826 @@ class AuthController {
         }
     }
 
-    //
+    // Refresh access token
+    static async refreshToken(req, res) {
+        try {
+            const { refreshToken } = req.body;
+
+            if (!refreshToken) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Refresh token required'
+                });
+            }
+
+            // Verify refresh token
+            const tokenDoc = await RefreshToken.findOne({ token: refreshToken });
+            if (!tokenDoc || tokenDoc.expiresAt < new Date()) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Invalid or expired refresh token'
+                });
+            }
+
+            // Generate new access token
+            const { accessToken } = await tokenService.generateTokens(tokenDoc.userId);
+
+            res.json({
+                success: true,
+                accessToken
+            });
+
+        } catch (error) {
+            console.error('Token refresh error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Google OAuth callback
+    static async googleCallback(req, res) {
+        try {
+            const user = req.user; // From Passport.js
+
+            // Generate tokens
+            const { accessToken, refreshToken } = await tokenService.generateTokens(user._id);
+            await tokenService.saveRefreshToken(user._id, refreshToken);
+
+            // Redirect to frontend with tokens
+            const redirectUrl = `${process.env.CLIENT_URL}/auth/callback?token=${accessToken}&user=${encodeURIComponent(JSON.stringify({
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role
+            }))}`;
+
+            res.redirect(redirectUrl);
+
+        } catch (error) {
+            console.error('Google OAuth callback error:', error);
+            res.redirect(`${process.env.CLIENT_URL}/login?error=oauth_failed`);
+        }
+    }
+
+    // Get current user profile
+    static async getProfile(req, res) {
+        try {
+            const userId = req.user.id;
+            const user = await User.findById(userId).select('-password');
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                user
+            });
+
+        } catch (error) {
+            console.error('Get profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+}
+
+module.exports = AuthController;
+```
+
+---
+
+## server/controllers/userController.js
+
+```javascript
+const User = require('../models/User');
+const userService = require('../services/userService');
+const { validationResult } = require('express-validator');
+
+class UserController {
+    // Get all users (admin only)
+    static async getAllUsers(req, res) {
+        try {
+            const { page = 1, limit = 10, search = '' } = req.query;
+            
+            // Build search query with ES6+ object shorthand
+            const searchQuery = search ? {
+                $or: [
+                    { name: { $regex: search, $options: 'i' } },
+                    { email: { $regex: search, $options: 'i' } }
+                ]
+            } : {};
+
+            // Pagination with ES6+ destructuring
+            const users = await User.find(searchQuery)
+                .select('-password')
+                .limit(limit * 1)
+                .skip((page - 1) * limit)
+                .sort({ createdAt: -1 });
+
+            const total = await User.countDocuments(searchQuery);
+
+            res.json({
+                success: true,
+                users,
+                pagination: {
+                    current: parseInt(page),
+                    pages: Math.ceil(total / limit),
+                    total
+                }
+            });
+
+        } catch (error) {
+            console.error('Get users error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Get user by ID
+    static async getUserById(req, res) {
+        try {
+            const { id } = req.params;
+            const user = await User.findById(id).select('-password');
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                user
+            });
+
+        } catch (error) {
+            console.error('Get user error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Update user profile
+    static async updateProfile(req, res) {
+        try {
+            const errors = validationResult(req);
+            if (!errors.isEmpty()) {
+                return res.status(400).json({
+                    success: false,
+                    errors: errors.array()
+                });
+            }
+
+            const userId = req.user.id;
+            const { name, phone, bio } = req.body;
+
+            // Update user with ES6+ object shorthand
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                { name, phone, bio, updatedAt: new Date() },
+                { new: true, runValidators: true }
+            ).select('-password');
+
+            if (!updatedUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'Profile updated successfully',
+                user: updatedUser
+            });
+
+        } catch (error) {
+            console.error('Update profile error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Delete user (admin only)
+    static async deleteUser(req, res) {
+        try {
+            const { id } = req.params;
+
+            // Prevent self-deletion
+            if (id === req.user.id) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Cannot delete your own account'
+                });
+            }
+
+            const deletedUser = await User.findByIdAndDelete(id);
+
+            if (!deletedUser) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            res.json({
+                success: true,
+                message: 'User deleted successfully'
+            });
+
+        } catch (error) {
+            console.error('Delete user error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Get user statistics
+    static async getUserStats(req, res) {
+        try {
+            const userId = req.user.id;
+            const stats = await userService.getUserStatistics(userId);
+
+            res.json({
+                success: true,
+                stats
+            });
+
+        } catch (error) {
+            console.error('Get user stats error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+}
+
+module.exports = UserController;
+```
+
+---
+
+## server/controllers/dashboardController.js
+
+```javascript
+const User = require('../models/User');
+const Session = require('../models/Session');
+
+class DashboardController {
+    // Get dashboard statistics
+    static async getDashboardStats(req, res) {
+        try {
+            const userId = req.user.id;
+            
+            // ES6+ Promise.all for concurrent queries
+            const [
+                totalUsers,
+                activeSessions,
+                userLoginCount,
+                recentUsers
+            ] = await Promise.all([
+                User.countDocuments(),
+                Session.countDocuments({ expiresAt: { $gt: new Date() } }),
+                User.findById(userId).select('loginCount'),
+                User.find()
+                    .select('name email createdAt lastLogin')
+                    .sort({ createdAt: -1 })
+                    .limit(5)
+            ]);
+
+            res.json({
+                success: true,
+                stats: {
+                    totalUsers,
+                    activeSessions,
+                    loginCount: userLoginCount?.loginCount || 0,
+                    recentUsers
+                }
+            });
+
+        } catch (error) {
+            console.error('Dashboard stats error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+
+    // Get user activity data
+    static async getUserActivity(req, res) {
+        try {
+            const userId = req.user.id;
+            const { days = 7 } = req.query;
+
+            // Calculate date range
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - days);
+
+            // Get user login activity (this would need a separate activity log in production)
+            const user = await User.findById(userId)
+                .select('name email lastLogin loginCount createdAt');
+
+            res.json({
+                success: true,
+                activity: {
+                    user,
+                    period: `${days} days`,
+                    startDate,
+                    endDate: new Date()
+                }
+            });
+
+        } catch (error) {
+            console.error('User activity error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'Internal server error'
+            });
+        }
+    }
+}
+
+module.exports = DashboardController;
+```
+
+---
+
+## server/models/User.js
+
+```javascript
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+
+// ES6+ Schema definition with arrow functions
+const userSchema = new mongoose.Schema({
+    name: {
+        type: String,
+        required: [true, 'Name is required'],
+        trim: true,
+        maxlength: [50, 'Name cannot exceed 50 characters']
+    },
+    email: {
+        type: String,
+        required: [true, 'Email is required'],
+        unique: true,
+        lowercase: true,
+        trim: true,
+        match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    },
+    password: {
+        type: String,
+        required: function() {
+            return this.provider === 'local'; // Only required for local auth
+        },
+        minlength: [6, 'Password must be at least 6 characters'],
+        select: false // Don't include in queries by default
+    },
+    phone: {
+        type: String,
+        trim: true,
+        match: [/^[\+]?[1-9][\d]{0,15}$/, 'Please enter a valid phone number']
+    },
+    bio: {
+        type: String,
+        maxlength: [500, 'Bio cannot exceed 500 characters']
+    },
+    avatar: {
+        type: String,
+        default: '/default-avatar.png'
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'moderator'],
+        default: 'user'
+    },
+    provider: {
+        type: String,
+        enum: ['local', 'google', 'github'],
+        default: 'local'
+    },
+    providerId: {
+        type: String,
+        sparse: true // Allows multiple null values
+    },
+    emailVerified: {
+        type: Boolean,
+        default: false
+    },
+    emailVerificationToken: String,
+    passwordResetToken: String,
+    passwordResetExpires: Date,
+    lastLogin: {
+        type: Date,
+        default: Date.now
+    },
+    loginCount: {
+        type: Number,
+        default: 0
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
+    twoFactorEnabled: {
+        type: Boolean,
+        default: false
+    },
+    twoFactorSecret: String
+}, {
+    timestamps: true, // Adds createdAt and updatedAt
+    toJSON: { 
+        transform: (doc, ret) => {
+            delete ret.password;
+            delete ret.passwordResetToken;
+            delete ret.emailVerificationToken;
+            delete ret.twoFactorSecret;
+            return ret;
+        }
+    }
+});
+
+// ES6+ Index for performance
+userSchema.index({ email: 1 });
+userSchema.index({ provider: 1, providerId: 1 });
+
+// Pre-save middleware for password hashing
+userSchema.pre('save', async function(next) {
+    // Only hash the password if it has been modified (or is new)
+    if (!this.isModified('password')) return next();
+    
+    try {
+        // Hash password with cost of 12
+        const salt = await bcrypt.genSalt(12);
+        this.password = await bcrypt.hash(this.password, salt);
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
+// Instance method to check password
+userSchema.methods.comparePassword = async function(candidatePassword) {
+    return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Static method to find by email
+userSchema.statics.findByEmail = function(email) {
+    return this.findOne({ email });
+};
+
+// Virtual for full name (if needed)
+userSchema.virtual('fullName').get(function() {
+    return this.name;
+});
+
+// Export model
+module.exports = mongoose.model('User', userSchema);
+```
+
+---
+
+## server/models/Session.js
+
+```javascript
+const mongoose = require('mongoose');
+
+const sessionSchema = new mongoose.Schema({
+    sessionId: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    sessionData: {
+        type: mongoose.Schema.Types.Mixed,
+        default: {}
+    },
+    userAgent: {
+        type: String,
+        trim: true
+    },
+    ipAddress: {
+        type: String,
+        trim: true
+    },
+    expiresAt: {
+        type: Date,
+        required: true,
+        default: () => new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    },
+    isActive: {
+        type: Boolean,
+        default: true
+    }
+}, {
+    timestamps: true
+});
+
+// ES6+ Index for automatic expiration
+sessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+sessionSchema.index({ userId: 1 });
+sessionSchema.index({ sessionId: 1 });
+
+// Static method to cleanup expired sessions
+sessionSchema.statics.cleanupExpired = function() {
+    return this.deleteMany({ expiresAt: { $lt: new Date() } });
+};
+
+module.exports = mongoose.model('Session', sessionSchema);
+```
+
+---
+
+## server/models/RefreshToken.js
+
+```javascript
+const mongoose = require('mongoose');
+const crypto = require('crypto');
+
+const refreshTokenSchema = new mongoose.Schema({
+    token: {
+        type: String,
+        required: true,
+        unique: true
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    expiresAt: {
+        type: Date,
+        required: true,
+        default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    },
+    isRevoked: {
+        type: Boolean,
+        default: false
+    },
+    userAgent: String,
+    ipAddress: String
+}, {
+    timestamps: true
+});
+
+// ES6+ Index for automatic expiration and performance
+refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+refreshTokenSchema.index({ userId: 1 });
+refreshTokenSchema.index({ token: 1 });
+
+// Pre-save middleware to generate token
+refreshTokenSchema.pre('save', function(next) {
+    if (!this.token) {
+        this.token = crypto.randomBytes(64).toString('hex');
+    }
+    next();
+});
+
+// Static method to revoke all tokens for user
+refreshTokenSchema.statics.revokeAllForUser = function(userId) {
+    return this.updateMany({ userId }, { isRevoked: true });
+};
+
+module.exports = mongoose.model('RefreshToken', refreshTokenSchema);
+```
+
+---
+
+## server/routes/authRoutes.js
+
+```javascript
+const express = require('express');
+const passport = require('passport');
+const rateLimit = require('express-rate-limit');
+const { body } = require('express-validator');
+const AuthController = require('../controllers/authController');
+const auth = require('../middleware/auth');
+
+const router = express.Router();
+
+// Rate limiting for auth routes
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // 5 attempts per window
+    message: {
+        success: false,
+        message: 'Too many authentication attempts, please try again later'
+    },
+    standardHeaders: true,
+    legacyHeaders: false
+});
+
+// Validation middleware using ES6+ array methods
+const registerValidation = [
+    body('name')
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Name must be between 2 and 50 characters'),
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email'),
+    body('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password must contain at least one uppercase letter, one lowercase letter, and one number')
+];
+
+const loginValidation = [
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email'),
+    body('password')
+        .notEmpty()
+        .withMessage('Password is required')
+];
+
+// Auth routes with ES6+ route handlers
+router.post('/register', authLimiter, registerValidation, AuthController.register);
+router.post('/login', authLimiter, loginValidation, AuthController.login);
+router.post('/logout', auth, AuthController.logout);
+router.post('/refresh-token', AuthController.refreshToken);
+
+// OAuth routes
+router.get('/google', 
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+router.get('/google/callback',
+    passport.authenticate('google', { failureRedirect: '/login' }),
+    AuthController.googleCallback
+);
+
+// Protected routes
+router.get('/profile', auth, AuthController.getProfile);
+
+// Verify token route
+router.get('/verify', auth, (req, res) => {
+    res.json({
+        success: true,
+        user: req.user,
+        message: 'Token is valid'
+    });
+});
+
+module.exports = router;
+```
+
+---
+
+## server/routes/userRoutes.js
+
+```javascript
+const express = require('express');
+const { body } = require('express-validator');
+const UserController = require('../controllers/userController');
+const auth = require('../middleware/auth');
+const { requireRole } = require('../middleware/auth');
+
+const router = express.Router();
+
+// User profile validation
+const profileValidation = [
+    body('name')
+        .optional()
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Name must be between 2 and 50 characters'),
+    body('phone')
+        .optional()
+        .isMobilePhone()
+        .withMessage('Please provide a valid phone number'),
+    body('bio')
+        .optional()
+        .isLength({ max: 500 })
+        .withMessage('Bio cannot exceed 500 characters')
+];
+
+// Protected user routes
+router.use(auth); // Apply auth middleware to all routes
+
+// User profile routes
+router.get('/profile', UserController.getUserById);
+router.put('/profile', profileValidation, UserController.updateProfile);
+router.get('/stats', UserController.getUserStats);
+
+// Admin only routes
+router.get('/', requireRole('admin'), UserController.getAllUsers);
+router.get('/:id', requireRole('admin'), UserController.getUserById);
+router.delete('/:id', requireRole('admin'), UserController.deleteUser);
+
+module.exports = router;
+```
+
+---
+
+## server/routes/apiRoutes.js
+
+```javascript
+const express = require('express');
+const DashboardController = require('../controllers/dashboardController');
+const auth = require('../middleware/auth');
+const rateLimit = require('express-rate-limit');
+
+const router = express.Router();
+
+// API rate limiting
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // 100 requests per window
+    message: {
+        success: false,
+        message: 'Too many API requests, please try again later'
+    }
+});
+
+// Apply middleware to all API routes
+router.use(apiLimiter);
+router.use(auth);
+
+// Dashboard API routes
+router.get('/dashboard/stats', DashboardController.getDashboardStats);
+router.get('/dashboard/activity', DashboardController.getUserActivity);
+
+// Health check endpoint
+router.get('/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'API is healthy',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime()
+    });
+});
+
+module.exports = router;
+```
+
+---
+
+## server/routes/viewRoutes.js
+
+```javascript
+const express = require('express');
+const auth = require('../middleware/auth');
+
+const router = express.Router();
+
+// Middleware to set common view variables
+router.use((req, res, next) => {
+    res.locals.user = req.user || null;
+    res.locals.isAuthenticated = !!req.user;
+    res.locals.currentPath = req.path;
+    next();
+});
+
+// Public routes
+router.get('/', (req, res) => {
+    res.render('index', {
+        title: 'Home - Full-Stack Web App',
+        description: 'Welcome to our full-stack web application'
+    });
+});
+
+router.get('/about', (req, res) => {
+    res.render('about', {
+        title: 'About - Full-Stack Web App'
+    });
+});
+
+router.get('/contact', (req, res) => {
+    res.render('contact', {
+        title: 'Contact - Full-Stack Web App'
+    });
+});
+
+// Auth routes (public)
+router.get('/login', (req, res) => {
+    if (req.user) {
+        return res.redirect('/dashboard');
+    }
+    res.render('auth/login', {
+        title: 'Login',
+        error: req.query.error
+    });
+});
+
+router.get('/register', (req, res) => {
+    if (req.user) {
+        return res.redirect('/dashboard');
+    }
+    res.render('auth/register', {
+        title: 'Register'
+    });
+});
+
+// Protected routes
+router.get('/dashboard', auth, (req, res) => {
+    res.render('dashboard/index', {
+        title: 'Dashboard',
+        user: req.user
+    });
+});
+
+router.get('/profile', auth, (req, res) => {
+    res.render('dashboard/profile', {
+        title: 'Profile',
+        user: req.user
+    });
+});
+
+// Error routes
+router.get('/404', (req, res) => {
+    res.status(404).render('errors/404', {
+        title: 'Page Not Found'
+    });
+});
+
+router.get('/500', (req, res) => {
+    res.status(500).render('errors/500', {
+        title: 'Server Error'
+    });
+});
+
+module.exports = router;
+```
+
+
+# Full-Stack Web Application - Middleware Implementation
+
+## server/middleware/auth.js
+
+```javascript
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { promisify } = require('util'); // ES6+ destructuring from util
+
+// JWT token verification middleware
+const authenticateToken = async (req, res, next) => {
+    try {
+        // Extract token from Authorization header or cookies
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1] || req.cookies.token;
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Access token required' 
+            });
+        }
+
+        // Verify JWT token using ES6+ async/await
+        const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+        
+        // Fetch user from database
+        const user = await User.findById(decoded.userId).select('-password');
+        if (!user) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'User not found' 
+            });
+        }
+
+        // Attach user to request object
+        req.user = user;
+        next();
+    } catch (error) {
+        // Handle different JWT errors
+        if (error.name === 'TokenExpiredError') {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Token expired' 
+            });
+        }
+        if (error.name === 'JsonWebTokenError') {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Invalid token' 
+            });
+        }
+        
+        console.error('Auth middleware error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Authentication failed' 
+        });
+    }
+};
+
+// Optional authentication middleware (doesn't fail if no token)
+const optionalAuth = async (req, res, next) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        const token = authHeader && authHeader.split(' ')[1] || req.cookies.token;
+        
+        if (token) {
+            const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+            const user = await User.findById(decoded.userId).select('-password');
+            if (user) {
+                req.user = user;
+            }
+        }
+        next();
+    } catch (error) {
+        // Continue without authentication
+        next();
+    }
+};
+
+// Role-based authorization middleware
+const authorize = (...roles) => {
+    return (req, res, next) => {
+        if (!req.user) {
+            return res.status(401).json({ 
+                success: false, 
+                message: 'Authentication required' 
+            });
+        }
+        
+        // Check if user has required role using ES6+ includes
+        if (!roles.includes(req.user.role)) {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'Insufficient permissions' 
+            });
+        }
+        
+        next();
+    };
+};
+
+// Session-based authentication middleware
+const authenticateSession = (req, res, next) => {
+    if (req.session && req.session.userId) {
+        User.findById(req.session.userId)
+            .select('-password')
+            .then(user => {
+                if (user) {
+                    req.user = user;
+                    next();
+                } else {
+                    req.session.destroy();
+                    res.status(401).json({ 
+                        success: false, 
+                        message: 'Session invalid' 
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Session auth error:', error);
+                res.status(500).json({ 
+                    success: false, 
+                    message: 'Authentication failed' 
+                });
+            });
+    } else {
+        res.status(401).json({ 
+            success: false, 
+            message: 'Session required' 
+        });
+    }
+};
+
+module.exports = {
+    authenticateToken,
+    optionalAuth,
+    authorize,
+    authenticateSession
+};
+```
+
+---
+
+## server/middleware/validation.js
+
+```javascript
+const { body, validationResult, param, query } = require('express-validator');
+const xss = require('xss');
+const DOMPurify = require('dompurify');
+const { JSDOM } = require('jsdom');
+
+// Create DOMPurify instance for server-side sanitization
+const window = new JSDOM('').window;
+const purify = DOMPurify(window);
+
+// Validation error handler
+const handleValidationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        // ES6+ map to format errors
+        const formattedErrors = errors.array().map(error => ({
+            field: error.param,
+            message: error.msg,
+            value: error.value
+        }));
+        
+        return res.status(400).json({
+            success: false,
+            message: 'Validation failed',
+            errors: formattedErrors
+        });
+    }
+    next();
+};
+
+// Sanitization middleware
+const sanitizeInput = (req, res, next) => {
+    // Sanitize request body recursively
+    const sanitizeObject = (obj) => {
+        for (let key in obj) {
+            if (typeof obj[key] === 'string') {
+                // Remove XSS attempts and purify HTML
+                obj[key] = purify.sanitize(xss(obj[key]));
+            } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+                sanitizeObject(obj[key]);
+            }
+        }
+    };
+
+    if (req.body) sanitizeObject(req.body);
+    if (req.query) sanitizeObject(req.query);
+    if (req.params) sanitizeObject(req.params);
+    
+    next();
+};
+
+// User registration validation rules
+const validateUserRegistration = [
+    body('name')
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Name must be between 2 and 50 characters')
+        .matches(/^[a-zA-Z\s]+$/)
+        .withMessage('Name can only contain letters and spaces'),
+    
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address'),
+    
+    body('password')
+        .isLength({ min: 6 })
+        .withMessage('Password must be at least 6 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    
+    body('confirmPassword')
+        .custom((value, { req }) => {
+            if (value !== req.body.password) {
+                throw new Error('Passwords do not match');
+            }
+            return true;
+        }),
+    
+    handleValidationErrors
+];
+
+// User login validation rules
+const validateUserLogin = [
+    body('email')
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address'),
+    
+    body('password')
+        .notEmpty()
+        .withMessage('Password is required'),
+    
+    handleValidationErrors
+];
+
+// User profile update validation
+const validateProfileUpdate = [
+    body('name')
+        .optional()
+        .trim()
+        .isLength({ min: 2, max: 50 })
+        .withMessage('Name must be between 2 and 50 characters'),
+    
+    body('email')
+        .optional()
+        .isEmail()
+        .normalizeEmail()
+        .withMessage('Please provide a valid email address'),
+    
+    body('phone')
+        .optional()
+        .matches(/^[\+]?[1-9][\d]{0,15}$/)
+        .withMessage('Please provide a valid phone number'),
+    
+    body('bio')
+        .optional()
+        .isLength({ max: 500 })
+        .withMessage('Bio cannot exceed 500 characters'),
+    
+    handleValidationErrors
+];
+
+// Password change validation
+const validatePasswordChange = [
+    body('currentPassword')
+        .notEmpty()
+        .withMessage('Current password is required'),
+    
+    body('newPassword')
+        .isLength({ min: 6 })
+        .withMessage('New password must be at least 6 characters long')
+        .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+        .withMessage('New password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    
+    body('confirmNewPassword')
+        .custom((value, { req }) => {
+            if (value !== req.body.newPassword) {
+                throw new Error('New passwords do not match');
+            }
+            return true;
+        }),
+    
+    handleValidationErrors
+];
+
+// ID parameter validation
+const validateObjectId = [
+    param('id')
+        .isMongoId()
+        .withMessage('Invalid ID format'),
+    
+    handleValidationErrors
+];
+
+// Pagination validation
+const validatePagination = [
+    query('page')
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage('Page must be a positive integer'),
+    
+    query('limit')
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage('Limit must be between 1 and 100'),
+    
+    handleValidationErrors
+];
+
+module.exports = {
+    handleValidationErrors,
+    sanitizeInput,
+    validateUserRegistration,
+    validateUserLogin,
+    validateProfileUpdate,
+    validatePasswordChange,
+    validateObjectId,
+    validatePagination
+};
+```
+
+---
+
+## server/middleware/rateLimit.js
+
+```javascript
+const rateLimit = require('express-rate-limit');
+const slowDown = require('express-slow-down');
+const MongoStore = require('rate-limit-mongo');
+
+// MongoDB store for rate limiting (distributed systems)
+const mongoStore = new MongoStore({
+    uri: process.env.MONGODB_URI,
+    collectionName: 'rateLimits',
+    expireTimeMs: 15 * 60 * 1000 // 15 minutes
+});
+
+// General API rate limiting
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: {
+        success: false,
+        message: 'Too many requests from this IP, please try again later.'
+    },
+    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
+    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+    store: mongoStore,
+    skip: (req) => {
+        // Skip rate limiting for trusted IPs or internal requests
+        const trustedIPs = process.env.TRUSTED_IPS?.split(',') || [];
+        return trustedIPs.includes(req.ip);
+    }
+});
+
+// Strict rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 auth requests per windowMs
+    message: {
+        success: false,
+        message: 'Too many authentication attempts, please try again in 15 minutes.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: mongoStore,
+    skipSuccessfulRequests: true // Don't count successful requests
+});
+
+// Progressive delay for repeated requests
+const speedLimiter = slowDown({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    delayAfter: 2, // allow 2 requests per windowMs without delay
+    delayMs: 500, // add 500ms delay per request after delayAfter
+    maxDelayMs: 20000, // maximum delay of 20 seconds
+    store: mongoStore
+});
+
+// Account creation rate limiting
+const createAccountLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // limit each IP to 3 account creation requests per hour
+    message: {
+        success: false,
+        message: 'Too many accounts created from this IP, please try again in an hour.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: mongoStore
+});
+
+// Password reset rate limiting
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // limit each IP to 3 password reset requests per hour
+    message: {
+        success: false,
+        message: 'Too many password reset attempts, please try again in an hour.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: mongoStore
+});
+
+// File upload rate limiting
+const uploadLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 10, // limit each IP to 10 file uploads per hour
+    message: {
+        success: false,
+        message: 'Too many file uploads, please try again in an hour.'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+    store: mongoStore
+});
+
+// Custom rate limiter factory
+const createRateLimiter = (options = {}) => {
+    const defaultOptions = {
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        message: {
+            success: false,
+            message: 'Too many requests, please try again later.'
+        },
+        standardHeaders: true,
+        legacyHeaders: false,
+        store: mongoStore
+    };
+    
+    return rateLimit({ ...defaultOptions, ...options });
+};
+
+module.exports = {
+    apiLimiter,
+    authLimiter,
+    speedLimiter,
+    createAccountLimiter,
+    passwordResetLimiter,
+    uploadLimiter,
+    createRateLimiter
+};
+```
+
+---
+
+## server/middleware/cors.js
+
+```javascript
+const cors = require('cors');
+
+// CORS configuration
+const corsOptions = {
+    origin: function (origin, callback) {
+        // List of allowed origins
+        const allowedOrigins = [
+            process.env.CLIENT_URL || 'http://localhost:3000',
+            process.env.ADMIN_URL || 'http://localhost:3001',
+            'http://localhost:3000',
+            'http://localhost:3001'
+        ];
+        
+        // Allow requests with no origin (mobile apps, Postman, etc.)
+        if (!origin) return callback(null, true);
+        
+        if (allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS policy'));
+        }
+    },
+    credentials: true, // Allow cookies to be sent
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+        'Origin',
+        'X-Requested-With',
+        'Content-Type',
+        'Accept',
+        'Authorization',
+        'Cache-Control',
+        'X-CSRF-Token'
+    ],
+    optionsSuccessStatus: 200 // Legacy browser support
+};
+
+// Development CORS (more permissive)
+const devCorsOptions = {
+    origin: true, // Allow all origins in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: '*',
+    optionsSuccessStatus: 200
+};
+
+// Production CORS (strict)
+const prodCorsOptions = {
+    ...corsOptions,
+    origin: function (origin, callback) {
+        const allowedOrigins = [
+            process.env.CLIENT_URL,
+            process.env.ADMIN_URL
+        ].filter(Boolean); // Remove undefined values
+        
+        if (!origin) return callback(null, false); // Disallow requests with no origin
+        
+        if (allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS policy'));
+        }
+    }
+};
+
+// Custom CORS middleware with additional security
+const customCorsMiddleware = (req, res, next) => {
+    const origin = req.get('Origin');
+    
+    // Add security headers
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    
+    // Log CORS requests in development
+    if (process.env.NODE_ENV === 'development' && origin) {
+        console.log(`CORS request from origin: ${origin}`);
+    }
+    
+    next();
+};
+
+// Choose CORS configuration based on environment
+const getCorsOptions = () => {
+    if (process.env.NODE_ENV === 'production') {
+        return prodCorsOptions;
+    } else if (process.env.NODE_ENV === 'development') {
+        return devCorsOptions;
+    } else {
+        return corsOptions;
+    }
+};
+
+module.exports = {
+    corsOptions,
+    devCorsOptions,
+    prodCorsOptions,
+    customCorsMiddleware,
+    getCorsOptions,
+    // Export configured CORS middleware
+    corsMiddleware: cors(getCorsOptions())
+};
+```
+
+---
+
+## server/middleware/errorHandler.js
+
+```javascript
+const fs = require('fs').promises;
+const path = require('path');
+
+// Custom error class for application errors
+class AppError extends Error {
+    constructor(message, statusCode, isOperational = true) {
+        super(message);
+        this.statusCode = statusCode;
+        this.isOperational = isOperational;
+        this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+        
+        // Capture stack trace
+        Error.captureStackTrace(this, this.constructor);
+    }
+}
+
+// Async error wrapper
+const asyncHandler = (fn) => {
+    return (req, res, next) => {
+        Promise.resolve(fn(req, res, next)).catch(next);
+    };
+};
+
+// Error logging function
+const logError = async (error, req) => {
+    const logData = {
+        timestamp: new Date().toISOString(),
+        method: req.method,
+        url: req.url,
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        userId: req.user?.id || 'anonymous',
+        error: {
+            message: error.message,
+            stack: error.stack,
+            statusCode: error.statusCode
+        }
+    };
+    
+    try {
+        // Log to file in production
+        if (process.env.NODE_ENV === 'production') {
+            const logFile = path.join(__dirname, '../../logs', 'error.log');
+            await fs.appendFile(logFile, JSON.stringify(logData) + '\n');
+        }
+        
+        // Log to console in development
+        if (process.env.NODE_ENV === 'development') {
+            console.error('Error Details:', logData);
+        }
+    } catch (logError) {
+        console.error('Failed to log error:', logError);
+    }
+};
+
+// Development error response
+const sendErrorDev = (err, req, res) => {
+    res.status(err.statusCode).json({
+        success: false,
+        error: err,
+        message: err.message,
+        stack: err.stack,
+        request: {
+            method: req.method,
+            url: req.url,
+            body: req.body,
+            params: req.params,
+            query: req.query
+            }
+    });
+};
+
+// Production error response
+const sendErrorProd = (err, req, res) => {
+    // Operational, trusted error: send message to client
+    if (err.isOperational) {
+        res.status(err.statusCode).json({
+            success: false,
+            message: err.message
+        });
+    } else {
+        // Programming or other unknown error: don't leak error details
+        console.error('ERROR:', err);
+        
+        res.status(500).json({
+            success: false,
+            message: 'Something went wrong!'
+        });
+    }
+};
+
+// Handle specific error types
+const handleCastErrorDB = (err) => {
+    const message = `Invalid ${err.path}: ${err.value}`;
+    return new AppError(message, 400);
+};
+
+const handleDuplicateFieldsDB = (err) => {
+    const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+    const message = `Duplicate field value: ${value}. Please use another value!`;
+    return new AppError(message, 400);
+};
+
+const handleValidationErrorDB = (err) => {
+    const errors = Object.values(err.errors).map(el => el.message);
+    const message = `Invalid input data. ${errors.join('. ')}`;
+    return new AppError(message, 400);
+};
+
+const handleJWTError = () =>
+    new AppError('Invalid token. Please log in again!', 401);
+
+const handleJWTExpiredError = () =>
+    new AppError('Your token has expired! Please log in again.', 401);
+
+// Main error handling middleware
+const errorHandler = async (err, req, res, next) => {
+    // Set default error properties
+    err.statusCode = err.statusCode || 500;
+    err.status = err.status || 'error';
+    
+    // Log error
+    await logError(err, req);
+    
+    if (process.env.NODE_ENV === 'development') {
+        sendErrorDev(err, req, res);
+    } else {
+        let error = { ...err };
+        error.message = err.message;
+        
+        // Handle specific error types
+        if (error.name === 'CastError') error = handleCastErrorDB(error);
+        if (error.code === 11000) error = handleDuplicateFieldsDB(error);
+        if (error.name === 'ValidationError') error = handleValidationErrorDB(error);
+        if (error.name === 'JsonWebTokenError') error = handleJWTError();
+        if (error.name === 'TokenExpiredError') error = handleJWTExpiredError();
+        
+        sendErrorProd(error, req, res);
+    }
+};
+
+// 404 handler
+const notFound = (req, res, next) => {
+    const error = new AppError(`Not found - ${req.originalUrl}`, 404);
+    next(error);
+};
+
+// Unhandled rejection handler
+const handleUnhandledRejection = (server) => {
+    process.on('unhandledRejection', (err, promise) => {
+        console.log('Unhandled Rejection at:', promise, 'reason:', err);
+        // Close server & exit process
+        server.close(() => {
+            process.exit(1);
+        });
+    });
+};
+
+// Uncaught exception handler
+const handleUncaughtException = () => {
+    process.on('uncaughtException', (err) => {
+        console.log('Uncaught Exception thrown:', err);
+        process.exit(1);
+    });
+};
+
+module.exports = {
+    AppError,
+    asyncHandler,
+    errorHandler,
+    notFound,
+    handleUnhandledRejection,
+    handleUncaughtException
+};
+```
+
+---
+
+## server/middleware/logger.js
+
+```javascript
+const winston = require('winston');
+const morgan = require('morgan');
+const path = require('path');
+const fs = require('fs');
+
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, '../../logs');
+if (!fs.existsSync(logsDir)) {
+    fs.mkdirSync(logsDir, { recursive: true });
+}
+
+// Custom log format
+const customFormat = winston.format.combine(
+    winston.format.timestamp({
+        format: 'YYYY-MM-DD HH:mm:ss'
+    }),
+    winston.format.errors({ stack: true }),
+    winston.format.json(),
+    winston.format.prettyPrint()
+);
+
+// Winston logger configuration
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: customFormat,
+    defaultMeta: { service: 'fullstack-app' },
+    transports: [
+        // Write all logs with level 'error' and below to error.log
+        new winston.transports.File({
+            filename: path.join(logsDir, 'error.log'),
+            level: 'error',
+            maxsize: 5242880, // 5MB
+            maxFiles: 5,
+            tailable: true
+        }),
+        
+        // Write all logs with level 'info' and below to combined.log
+        new winston.transports.File({
+            filename: path.join(logsDir, 'combined.log'),
+            maxsize: 5242880, // 5MB
+            maxFiles: 5,
+            tailable: true
+        })
+    ],
+    
+    // Handle exceptions
+    exceptionHandlers: [
+        new winston.transports.File({
+            filename: path.join(logsDir, 'exceptions.log')
+        })
+    ],
+    
+    // Handle rejections
+    rejectionHandlers: [
+        new winston.transports.File({
+            filename: path.join(logsDir, 'rejections.log')
+        })
+    ]
+});
+
+// Add console transport for development
+if (process.env.NODE_ENV !== 'production') {
+    logger.add(new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple()
+        )
+    }));
+}
+
+// Morgan stream for HTTP request logging
+const morganStream = {
+    write: (message) => {
+        logger.info(message.trim());
+    }
+};
+
+// Custom Morgan tokens
+morgan.token('user-id', (req) => {
+    return req.user ? req.user.id : 'anonymous';
+});
+
+morgan.token('real-ip', (req) => {
+    return req.ip || req.connection.remoteAddress;
+});
+
+// Development logging format
+const developmentFormat = ':method :url :status :res[content-length] - :response-time ms - :user-id - :real-ip';
+
+// Production logging format
+const productionFormat = ':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" - :user-id - :response-time ms';
+
+// Request logging middleware
+const requestLogger = morgan(
+    process.env.NODE_ENV === 'production' ? productionFormat : developmentFormat,
+    { stream: morganStream }
+);
+
+// Security logging middleware
+const securityLogger = (req, res, next) => {
+    // Log security-related events
+    const securityEvents = [
+        'login',
+        'logout',
+        'register',
+        'password-change',
+        'password-reset',
+        'oauth-login',
+        'failed-login'
+    ];
+    
+    // Check if this is a security-related request
+    const isSecurityEvent = securityEvents.some(event => 
+        req.url.includes(event) || req.body?.action === event
+    );
+    
+    if (isSecurityEvent) {
+        logger.info('Security Event', {
+            type: 'security',
+            method: req.method,
+            url: req.url,
+            ip: req.ip,
+            userAgent: req.get('User-Agent'),
+            userId: req.user?.id || 'anonymous',
+            timestamp: new Date().toISOString()
+        });
+    }
+    
+    next();
+};
+
+// Database query logging
+const dbLogger = (query, executionTime) => {
+    if (process.env.NODE_ENV === 'development') {
+        logger.debug('Database Query', {
+            query: query.toString(),
+            executionTime: `${executionTime}ms`,
+            timestamp: new Date().toISOString()
+        });
+    }
+};
+
+// API endpoint logging
+const apiLogger = (endpoint, method, userId, responseTime) => {
+    logger.info('API Call', {
+        endpoint,
+        method,
+        userId: userId || 'anonymous',
+        responseTime: `${responseTime}ms`,
+        timestamp: new Date().toISOString()
+    });
+};
+
+// Performance monitoring middleware
+const performanceLogger = (req, res, next) => {
+    const startTime = Date.now();
+    
+    // Override res.end to log response time
+    const originalEnd = res.end;
+    res.end = function(...args) {
+        const responseTime = Date.now() - startTime;
+        
+        // Log slow requests (> 1 second)
+        if (responseTime > 1000) {
+            logger.warn('Slow Request', {
+                method: req.method,
+                url: req.url,
+                responseTime: `${responseTime}ms`,
+                statusCode: res.statusCode,
+                userAgent: req.get('User-Agent'),
+                timestamp: new Date().toISOString()
+            });
+        }
+        
+        originalEnd.apply(this, args);
+    };
+    
+    next();
+};
+
+module.exports = {
+    logger,
+    requestLogger,
+    securityLogger,
+    dbLogger,
+    apiLogger,
+    performanceLogger
+};
+```
+
+## Configuration Files
+
+---
+
+## server/config/database.js
+
+```javascript
+const mongoose = require('mongoose');
+const mysql = require('mysql2/promise');
+
+// MongoDB Configuration with ES6+ async/await
+const connectMongoDB = async () => {
+    try {
+        const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/fullstack_app';
+        
+        // ES6+ object shorthand for options
+        const options = {
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+            maxPoolSize: 10, // Maintain up to 10 socket connections
+            serverSelectionTimeoutMS: 5000, // Keep trying to send operations for 5 seconds
+            socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity
+        };
+
+        await mongoose.connect(mongoURI, options);
+        console.log('✅ MongoDB connected successfully');
+        
+        // Connection event listeners
+        mongoose.connection.on('error', (err) => {
+            console.error('❌ MongoDB connection error:', err);
+        });
+        
+        mongoose.connection.on('disconnected', () => {
+            console.log('⚠️ MongoDB disconnected');
+        });
+        
+    } catch (error) {
+        console.error('❌ MongoDB connection failed:', error);
+        process.exit(1);
+    }
+};
+
+// MySQL Configuration with connection pooling
+const createMySQLPool = () => {
+    try {
+        const pool = mysql.createPool({
+            host: process.env.MYSQL_HOST || 'localhost',
+            user: process.env.MYSQL_USER || 'root',
+            password: process.env.MYSQL_PASSWORD || '',
+            database: process.env.MYSQL_DATABASE || 'fullstack_app',
+            waitForConnections: true,
+            connectionLimit: 10,
+            queueLimit: 0,
+            acquireTimeout: 60000,
+            timeout: 60000,
+        });
+
+        console.log('✅ MySQL pool created successfully');
+        return pool;
+    } catch (error) {
+        console.error('❌ MySQL pool creation failed:', error);
+        process.exit(1);
+    }
+};
+
+// Test MySQL connection
+const testMySQLConnection = async (pool) => {
+    try {
+        const connection = await pool.getConnection();
+        console.log('✅ MySQL connected successfully');
+        connection.release();
+    } catch (error) {
+        console.error('❌ MySQL connection failed:', error);
+    }
+};
+
+// Export both database connections
+module.exports = {
+    connectMongoDB,
+    createMySQLPool,
+    testMySQLConnection
+};
+```
+
+---
+
+## server/config/passport.js
+
+```javascript
+const passport = require('passport');
+const LocalStrategy = require('passport-local').Strategy;
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const JwtStrategy = require('passport-jwt').Strategy;
+const ExtractJwt = require('passport-jwt').ExtractJwt;
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+
+// Local Strategy for email/password authentication
+passport.use(new LocalStrategy({
+    usernameField: 'email', // Use email instead of username
+    passwordField: 'password'
+}, async (email, password, done) => {
+    try {
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            return done(null, false, { message: 'Invalid email or password' });
+        }
+
+        // Check if account is active
+        if (!user.isActive) {
+            return done(null, false, { message: 'Account is deactivated' });
+        }
+
+        // Verify password using bcrypt
+        const isMatch = await bcrypt.compare(password, user.password);
+        
+        if (!isMatch) {
+            return done(null, false, { message: 'Invalid email or password' });
+        }
+
+        // Update last login
+        user.lastLogin = new Date();
+        await user.save();
+
+        return done(null, user);
+    } catch (error) {
+        return done(error);
+    }
+}));
+
+// Google OAuth Strategy
+passport.use(new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback'
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        // Check if user already exists with Google ID
+        let user = await User.findOne({ googleId: profile.id });
+
+        if (user) {
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+            return done(null, user);
+        }
+
+        // Check if user exists with same email
+        user = await User.findOne({ email: profile.emails[0].value });
+
+        if (user) {
+            // Link Google account to existing user
+            user.googleId = profile.id;
+            user.avatar = profile.photos[0].value;
+            user.lastLogin = new Date();
+            await user.save();
+            return done(null, user);
+        }
+
+        // Create new user with Google data
+        const newUser = new User({
+            googleId: profile.id,
+            name: profile.displayName,
+            email: profile.emails[0].value,
+            avatar: profile.photos[0].value,
+            isActive: true,
+            emailVerified: true, // Google emails are pre-verified
+            provider: 'google',
+            lastLogin: new Date()
+        });
+
+        await newUser.save();
+        return done(null, newUser);
+    } catch (error) {
+        return done(error);
+    }
+}));
+
+// JWT Strategy for API authentication
+passport.use(new JwtStrategy({
+    jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+    secretOrKey: process.env.JWT_SECRET
+}, async (payload, done) => {
+    try {
+        const user = await User.findById(payload.userId).select('-password');
+        
+        if (user) {
+            return done(null, user);
+        }
+        
+        return done(null, false);
+    } catch (error) {
+        return done(error);
+    }
+}));
+
+// Serialize user for session
+passport.serializeUser((user, done) => {
+    done(null, user._id);
+});
+
+// Deserialize user from session
+passport.deserializeUser(async (id, done) => {
+    try {
+        const user = await User.findById(id).select('-password');
+        done(null, user);
+    } catch (error) {
+        done(error);
+    }
+});
+
+module.exports = passport;
+```
+
+---
+
+## server/config/jwt.js
+
+```javascript
+const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+// JWT Configuration with ES6+ class syntax
+class JWTConfig {
+    constructor() {
+        this.accessTokenSecret = process.env.JWT_SECRET || this.generateSecret();
+        this.refreshTokenSecret = process.env.JWT_REFRESH_SECRET || this.generateSecret();
+        this.accessTokenExpiry = process.env.JWT_EXPIRES_IN || '15m';
+        this.refreshTokenExpiry = process.env.JWT_REFRESH_EXPIRES_IN || '7d';
+    }
+
+    // Generate random secret if not provided
+    generateSecret() {
+        return crypto.randomBytes(64).toString('hex');
+    }
+
+    // Generate access token
+    generateAccessToken(payload) {
+        return jwt.sign(payload, this.accessTokenSecret, {
+            expiresIn: this.accessTokenExpiry,
+            issuer: 'fullstack-app',
+            audience: 'fullstack-app-users'
+        });
+    }
+
+    // Generate refresh token
+    generateRefreshToken(payload) {
+        return jwt.sign(payload, this.refreshTokenSecret, {
+            expiresIn: this.refreshTokenExpiry,
+            issuer: 'fullstack-app',
+            audience: 'fullstack-app-users'
+        });
+    }
+
+    // Verify access token
+    verifyAccessToken(token) {
+        try {
+            return jwt.verify(token, this.accessTokenSecret);
+        } catch (error) {
+            throw new Error('Invalid access token');
+        }
+    }
+
+    // Verify refresh token
+    verifyRefreshToken(token) {
+        try {
+            return jwt.verify(token, this.refreshTokenSecret);
+        } catch (error) {
+            throw new Error('Invalid refresh token');
+        }
+    }
+
+    // Generate token pair
+    generateTokenPair(userId, email) {
+        const payload = { userId, email };
+        
+        return {
+            accessToken: this.generateAccessToken(payload),
+            refreshToken: this.generateRefreshToken(payload),
+            expiresIn: this.accessTokenExpiry
+        };
+    }
+
+    // Decode token without verification (for debugging)
+    decodeToken(token) {
+        return jwt.decode(token);
+    }
+}
+
+// Export singleton instance
+module.exports = new JWTConfig();
+```
+
+---
+
+## server/config/oauth.js
+
+```javascript
+// OAuth Configuration for multiple providers
+const oauthConfig = {
+    google: {
+        clientID: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || '/auth/google/callback',
+        scope: ['profile', 'email']
+    },
+    
+    // Facebook OAuth (if needed)
+    facebook: {
+        clientID: process.env.FACEBOOK_CLIENT_ID,
+        clientSecret: process.env.FACEBOOK_CLIENT_SECRET,
+        callbackURL: process.env.FACEBOOK_CALLBACK_URL || '/auth/facebook/callback',
+        scope: ['email', 'public_profile']
+    },
+    
+    // GitHub OAuth (if needed)
+    github: {
+        clientID: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackURL: process.env.GITHUB_CALLBACK_URL || '/auth/github/callback',
+        scope: ['user:email']
+    }
+};
+
+// OAuth redirect URLs for frontend
+const getOAuthRedirectURL = (provider, success = true) => {
+    const baseURL = process.env.CLIENT_URL || 'http://localhost:3000';
+    
+    if (success) {
+        return `${baseURL}/auth/callback?provider=${provider}`;
+    } else {
+        return `${baseURL}/login?error=oauth_failed&provider=${provider}`;
+    }
+};
+
+// Validate OAuth configuration
+const validateOAuthConfig = () => {
+    const requiredVars = [
+        'GOOGLE_CLIENT_ID',
+        'GOOGLE_CLIENT_SECRET'
+    ];
+    
+    const missing = requiredVars.filter(varName => !process.env[varName]);
+    
+    if (missing.length > 0) {
+        console.warn(`⚠️ Missing OAuth environment variables: ${missing.join(', ')}`);
+        console.warn('OAuth authentication may not work properly');
+    }
+};
+
+module.exports = {
+    oauthConfig,
+    getOAuthRedirectURL,
+    validateOAuthConfig
+};
+```
+
+---
+
+## Backend Services
+
+---
+
+## server/services/authService.js
+
+```javascript
+const bcrypt = require('bcryptjs');
+const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
+const jwtConfig = require('../config/jwt');
+const emailService = require('./emailService');
+
+class AuthService {
+    // Register new user with ES6+ async/await
+    async registerUser(userData) {
+        try {
+            const { name, email, password } = userData;
+            
+            // Check if user already exists
+            const existingUser = await User.findOne({ 
+                email: email.toLowerCase() 
+            });
+            
+            if (existingUser) {
+                throw new Error('User already exists with this email');
+            }
+
+            // Hash password with salt
+            const saltRounds = 12;
+            const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+            // Create new user
+            const newUser = new User({
+                name: name.trim(),
+                email: email.toLowerCase(),
+                password: hashedPassword,
+                isActive: true,
+                provider: 'local'
+            });
+
+            await newUser.save();
+
+            // Send welcome email
+            await emailService.sendWelcomeEmail(newUser.email, newUser.name);
+
+            return {
+                success: true,
+                message: 'User registered successfully',
+                user: {
+                    id: newUser._id,
+                    name: newUser.name,
+                    email: newUser.email
+                }
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Registration failed');
+        }
+    }
+
+    // Login user and generate tokens
+    async loginUser(email, password) {
+        try {
+            // Find user by email
+            const user = await User.findOne({ 
+                email: email.toLowerCase() 
+            });
+
+            if (!user) {
+                throw new Error('Invalid email or password');
+            }
+
+            // Check if account is active
+            if (!user.isActive) {
+                throw new Error('Account is deactivated');
+            }
+
+            // Verify password
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
+                throw new Error('Invalid email or password');
+            }
+
+            // Generate tokens
+            const tokens = jwtConfig.generateTokenPair(user._id, user.email);
+
+            // Save refresh token to database
+            await this.saveRefreshToken(user._id, tokens.refreshToken);
+
+            // Update last login
+            user.lastLogin = new Date();
+            await user.save();
+
+            return {
+                success: true,
+                message: 'Login successful',
+                user: {
+                    id: user._id,
+                    name: user.name,
+                    email: user.email,
+                    role: user.role,
+                    avatar: user.avatar
+                },
+                tokens
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Login failed');
+        }
+    }
+
+    // Save refresh token to database
+    async saveRefreshToken(userId, token) {
+        try {
+            // Remove old refresh tokens for this user
+            await RefreshToken.deleteMany({ userId });
+
+            // Save new refresh token
+            const refreshToken = new RefreshToken({
+                userId,
+                token,
+                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+            });
+
+            await refreshToken.save();
+        } catch (error) {
+            console.error('Error saving refresh token:', error);
+        }
+    }
+
+    // Refresh access token
+    async refreshAccessToken(refreshToken) {
+        try {
+            // Verify refresh token
+            const decoded = jwtConfig.verifyRefreshToken(refreshToken);
+
+            // Check if refresh token exists in database
+            const storedToken = await RefreshToken.findOne({
+                token: refreshToken,
+                userId: decoded.userId
+            });
+
+            if (!storedToken || storedToken.expiresAt < new Date()) {
+                throw new Error('Invalid or expired refresh token');
+            }
+
+            // Generate new access token
+            const newAccessToken = jwtConfig.generateAccessToken({
+                userId: decoded.userId,
+                email: decoded.email
+            });
+
+            return {
+                success: true,
+                accessToken: newAccessToken,
+                expiresIn: jwtConfig.accessTokenExpiry
+            };
+        } catch (error) {
+            throw new Error('Token refresh failed');
+        }
+    }
+
+    // Logout user and invalidate tokens
+    async logoutUser(userId, refreshToken) {
+        try {
+            // Remove refresh token from database
+            if (refreshToken) {
+                await RefreshToken.deleteOne({
+                    token: refreshToken,
+                    userId
+                });
+            } else {
+                // Remove all refresh tokens for user
+                await RefreshToken.deleteMany({ userId });
+            }
+
+            return {
+                success: true,
+                message: 'Logout successful'
+            };
+        } catch (error) {
+            throw new Error('Logout failed');
+        }
+    }
+
+    // Change user password
+    async changePassword(userId, oldPassword, newPassword) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            // Verify old password
+            const isValidPassword = await bcrypt.compare(oldPassword, user.password);
+            if (!isValidPassword) {
+                throw new Error('Current password is incorrect');
+            }
+
+            // Hash new password
+            const saltRounds = 12;
+            const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+            // Update password
+            user.password = hashedPassword;
+            user.passwordChangedAt = new Date();
+            await user.save();
+
+            // Invalidate all refresh tokens
+            await RefreshToken.deleteMany({ userId });
+
+            return {
+                success: true,
+                message: 'Password changed successfully'
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Password change failed');
+        }
+    }
+}
+
+module.exports = new AuthService();
+```
+
+---
+
+## server/services/emailService.js
+
+```javascript
+const nodemailer = require('nodemailer');
+
+class EmailService {
+    constructor() {
+        // Configure email transporter
+        this.transporter = nodemailer.createTransporter({
+            host: process.env.SMTP_HOST || 'smtp.gmail.com',
+            port: process.env.SMTP_PORT || 587,
+            secure: false, // true for 465, false for other ports
+            auth: {
+                user: process.env.SMTP_USER,
+                pass: process.env.SMTP_PASS
+            }
+        });
+
+        // Verify transporter configuration
+        this.verifyTransporter();
+    }
+
+    async verifyTransporter() {
+        try {
+            await this.transporter.verify();
+            console.log('✅ Email service is ready');
+        } catch (error) {
+            console.error('❌ Email service error:', error.message);
+        }
+    }
+
+    // Send welcome email
+    async sendWelcomeEmail(email, name) {
+        try {
+            const mailOptions = {
+                from: process.env.FROM_EMAIL || 'noreply@fullstackapp.com',
+                to: email,
+                subject: 'Welcome to FullStack App!',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #333;">Welcome ${name}!</h2>
+                        <p>Thank you for registering with FullStack App.</p>
+                        <p>Your account has been created successfully. You can now login and start using our services.</p>
+                        <div style="margin: 20px 0;">
+                            <a href="${process.env.CLIENT_URL}/login" 
+                               style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                                Login to Your Account
+                            </a>
+                        </div>
+                        <p>Best regards,<br>FullStack App Team</p>
+                    </div>
+                `
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log(`✅ Welcome email sent to ${email}`);
+        } catch (error) {
+            console.error('❌ Failed to send welcome email:', error);
+        }
+    }
+
+    // Send password reset email
+    async sendPasswordResetEmail(email, resetToken) {
+        try {
+            const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${resetToken}`;
+            
+            const mailOptions = {
+                from: process.env.FROM_EMAIL || 'noreply@fullstackapp.com',
+                to: email,
+                subject: 'Password Reset Request',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #333;">Password Reset Request</h2>
+                        <p>You requested to reset your password. Click the button below to reset it:</p>
+                        <div style="margin: 20px 0;">
+                            <a href="${resetUrl}" 
+                               style="background-color: #dc3545; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                                Reset Password
+                            </a>
+                        </div>
+                        <p>This link will expire in 1 hour.</p>
+                        <p>If you didn't request this, please ignore this email.</p>
+                        <p>Best regards,<br>FullStack App Team</p>
+                    </div>
+                `
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log(`✅ Password reset email sent to ${email}`);
+        } catch (error) {
+            console.error('❌ Failed to send password reset email:', error);
+        }
+    }
+
+    // Send email verification
+    async sendEmailVerification(email, verificationToken) {
+        try {
+            const verifyUrl = `${process.env.CLIENT_URL}/verify-email?token=${verificationToken}`;
+            
+            const mailOptions = {
+                from: process.env.FROM_EMAIL || 'noreply@fullstackapp.com',
+                to: email,
+                subject: 'Verify Your Email Address',
+                html: `
+                    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                        <h2 style="color: #333;">Email Verification</h2>
+                        <p>Please verify your email address by clicking the button below:</p>
+                        <div style="margin: 20px 0;">
+                            <a href="${verifyUrl}" 
+                               style="background-color: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                                Verify Email
+                            </a>
+                        </div>
+                        <p>This link will expire in 24 hours.</p>
+                        <p>Best regards,<br>FullStack App Team</p>
+                    </div>
+                `
+            };
+
+            await this.transporter.sendMail(mailOptions);
+            console.log(`✅ Email verification sent to ${email}`);
+        } catch (error) {
+            console.error('❌ Failed to send email verification:', error);
+        }
+    }
+}
+
+module.exports = new EmailService();
+```
+
+---
+
+## server/services/tokenService.js
+
+```javascript
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+const RefreshToken = require('../models/RefreshToken');
+
+class TokenService {
+    // Generate secure random token
+    generateSecureToken(length = 32) {
+        return crypto.randomBytes(length).toString('hex');
+    }
+
+    // Generate email verification token
+    generateEmailVerificationToken(email) {
+        const payload = {
+            email,
+            type: 'email_verification',
+            timestamp: Date.now()
+        };
+        
+        return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '24h' });
+    }
+
+    // Generate password reset token
+    generatePasswordResetToken(userId, email) {
+        const payload = {
+            userId,
+            email,
+            type: 'password_reset',
+            timestamp: Date.now()
+        };
+        
+        return jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+    }
+
+    // Verify email verification token
+    verifyEmailVerificationToken(token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            if (decoded.type !== 'email_verification') {
+                throw new Error('Invalid token type');
+            }
+            
+            return decoded;
+        } catch (error) {
+            throw new Error('Invalid or expired verification token');
+        }
+    }
+
+    // Verify password reset token
+    verifyPasswordResetToken(token) {
+        try {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            
+            if (decoded.type !== 'password_reset') {
+                throw new Error('Invalid token type');
+            }
+            
+            return decoded;
+        } catch (error) {
+            throw new Error('Invalid or expired reset token');
+        }
+    }
+
+    // Clean up expired refresh tokens
+    async cleanupExpiredTokens() {
+        try {
+            const result = await RefreshToken.deleteMany({
+                expiresAt: { $lt: new Date() }
+            });
+            
+            if (result.deletedCount > 0) {
+                console.log(`🧹 Cleaned up ${result.deletedCount} expired refresh tokens`);
+            }
+        } catch (error) {
+            console.error('❌ Error cleaning up expired tokens:', error);
+        }
+    }
+
+    // Revoke all user tokens
+    async revokeAllUserTokens(userId) {
+        try {
+            await RefreshToken.deleteMany({ userId });
+            console.log(`🔒 Revoked all tokens for user ${userId}`);
+        } catch (error) {
+            console.error('❌ Error revoking user tokens:', error);
+        }
+    }
+
+    // Get token statistics
+    async getTokenStats() {
+        try {
+            const totalTokens = await RefreshToken.countDocuments();
+            const expiredTokens = await RefreshToken.countDocuments({
+                expiresAt: { $lt: new Date() }
+            });
+            
+            return {
+                total: totalTokens,
+                expired: expiredTokens,
+                active: totalTokens - expiredTokens
+            };
+        } catch (error) {
+            console.error('❌ Error getting token stats:', error);
+            return { total: 0, expired: 0, active: 0 };
+        }
+    }
+}
+
+module.exports = new TokenService();
+```
+
+---
+
+## server/services/userService.js
+
+```javascript
+const User = require('../models/User');
+const bcrypt = require('bcryptjs');
+
+class UserService {
+    // Get user profile by ID
+    async getUserProfile(userId) {
+        try {
+            const user = await User.findById(userId)
+                .select('-password -__v')
+                .lean();
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            return {
+                success: true,
+                user
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to fetch user profile');
+        }
+    }
+
+    // Update user profile
+    async updateUserProfile(userId, updateData) {
+        try {
+            const allowedUpdates = ['name', 'phone', 'bio', 'avatar'];
+            const updates = {};
+            
+            // Filter allowed updates
+            Object.keys(updateData).forEach(key => {
+                if (allowedUpdates.includes(key) && updateData[key] !== undefined) {
+                    updates[key] = updateData[key];
+                }
+            });
+            
+            if (Object.keys(updates).length === 0) {
+                throw new Error('No valid updates provided');
+            }
+            
+            const user = await User.findByIdAndUpdate(
+                userId,
+                { ...updates, updatedAt: new Date() },
+                { new: true, runValidators: true }
+            ).select('-password -__v');
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            return {
+                success: true,
+                message: 'Profile updated successfully',
+                user
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to update profile');
+        }
+    }
+
+    // Get user statistics for dashboard
+    async getUserStats(userId) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            // Get various statistics
+            const stats = {
+                totalUsers: await User.countDocuments(),
+                activeUsers: await User.countDocuments({ isActive: true }),
+                newUsersThisMonth: await User.countDocuments({
+                    createdAt: { 
+                        $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) 
+                    }
+                }),
+                userLoginCount: user.loginCount || 0,
+                accountAge: Math.floor((new Date() - user.createdAt) / (1000 * 60 * 60 * 24)),
+                lastLogin: user.lastLogin
+            };
+            
+            return {
+                success: true,
+                stats
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to fetch user statistics');
+        }
+    }
+
+    // Search users (admin functionality)
+    async searchUsers(query, page = 1, limit = 10) {
+        try {
+            const skip = (page - 1) * limit;
+            
+            const searchQuery = {
+                $or: [
+                    { name: { $regex: query, $options: 'i' } },
+                    { email: { $regex: query, $options: 'i' } }
+                ]
+            };
+            
+            const users = await User.find(searchQuery)
+                .select('-password -__v')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit)
+                .lean();
+            
+            const total = await User.countDocuments(searchQuery);
+            
+            return {
+                success: true,
+                users,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to search users');
+        }
+    }
+
+    // Deactivate user account
+    async deactivateUser(userId) {
+        try {
+            const user = await User.findByIdAndUpdate(
+                userId,
+                { isActive: false, deactivatedAt: new Date() },
+                { new: true }
+            ).select('-password -__v');
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            return {
+                success: true,
+                message: 'User account deactivated successfully',
+                user
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to deactivate user');
+        }
+    }
+
+    // Activate user account
+    async activateUser(userId) {
+        try {
+            const user = await User.findByIdAndUpdate(
+                userId,
+                { isActive: true, $unset: { deactivatedAt: 1 } },
+                { new: true }
+            ).select('-password -__v');
+            
+            if (!user) {
+                throw new Error('User not found');
+            }
+            
+            return {
+                success: true,
+                message: 'User account activated successfully',
+                user
+            };
+        } catch (error) {
+            throw new Error(error.message || 'Failed to activate user');
+        }
+    }
+}
+
+module.exports = new UserService();
+```
+
+---
+
