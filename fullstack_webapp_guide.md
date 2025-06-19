@@ -4767,6 +4767,1800 @@ module.exports = mongoose.model('RefreshToken', refreshTokenSchema);
 
 ---
 
+## server/views/layouts/main.ejs
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Full-Stack Web App' %></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8f9fa;
+        }
+        .main-content {
+            min-height: calc(100vh - 120px);
+        }
+        .navbar-brand {
+            font-weight: 700;
+        }
+        .card {
+            border: none;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+        .btn {
+            border-radius: 0.375rem;
+        }
+        .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+        }
+        .footer {
+            background-color: #343a40;
+            color: white;
+            padding: 2rem 0;
+            margin-top: auto;
+        }
+    </style>
+    
+    <!-- Additional head content -->
+    <%- include('../partials/head') %>
+</head>
+<body class="d-flex flex-column min-vh-100">
+    <!-- Navigation -->
+    <%- include('../partials/navbar') %>
+    
+    <!-- Flash Messages -->
+    <% if (typeof messages !== 'undefined') { %>
+        <% Object.keys(messages).forEach(type => { %>
+            <% messages[type].forEach(message => { %>
+                <div class="alert alert-<%= type === 'error' ? 'danger' : type %> alert-dismissible fade show m-3" role="alert">
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <% }) %>
+        <% }) %>
+    <% } %>
+    
+    <!-- Main Content -->
+    <main class="main-content flex-grow-1">
+        <%- body %>
+    </main>
+    
+    <!-- Footer -->
+    <%- include('../partials/footer') %>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // ES6+ JavaScript for enhanced UX
+        document.addEventListener('DOMContentLoaded', () => {
+            // Auto-hide alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert && alert.parentNode) {
+                        alert.classList.remove('show');
+                        setTimeout(() => alert.remove(), 150);
+                    }
+                }, 5000);
+            });
+            
+            // Form validation enhancement
+            const forms = document.querySelectorAll('form[data-validate]');
+            forms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    if (!form.checkValidity()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                });
+            });
+        });
+    </script>
+    
+    <!-- Additional scripts -->
+    <%- include('../partials/scripts') %>
+</body>
+</html>
+```
+
+---
+
+## server/views/layouts/auth.ejs
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Authentication - Full-Stack Web App' %></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Auth-specific CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 15px;
+        }
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .auth-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        .auth-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .auth-body {
+            padding: 2rem;
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            padding: 12px 15px;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-auth {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+        .btn-auth:hover {
+            transform: translateY(-2px);
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .btn-google {
+            background: #db4437;
+            border-color: #db4437;
+            border-radius: 10px;
+            padding: 12px;
+        }
+        .btn-google:hover {
+            background: #c23321;
+            border-color: #c23321;
+        }
+        .auth-links {
+            text-align: center;
+            margin-top: 1rem;
+        }
+        .auth-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .auth-links a:hover {
+            color: #5a6fd8;
+            text-decoration: underline;
+        }
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            position: relative;
+        }
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e9ecef;
+        }
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            color: #6c757d;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Flash Messages -->
+            <% if (typeof messages !== 'undefined') { %>
+                <% Object.keys(messages).forEach(type => { %>
+                    <% messages[type].forEach(message => { %>
+                        <div class="alert alert-<%= type === 'error' ? 'danger' : type %> alert-dismissible fade show m-3" role="alert">
+                            <%= message %>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <% }) %>
+                <% }) %>
+            <% } %>
+            
+            <!-- Auth Content -->
+            <%- body %>
+        </div>
+        
+        <!-- Back to Home Link -->
+        <div class="text-center mt-3">
+            <a href="/" class="text-white text-decoration-none">
+                <i class="fas fa-arrow-left me-2"></i>Back to Home
+            </a>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Auth-specific JavaScript -->
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Password visibility toggle
+            const passwordFields = document.querySelectorAll('input[type="password"]');
+            passwordFields.forEach(field => {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.type = 'button';
+                toggleBtn.className = 'btn btn-outline-secondary btn-sm position-absolute';
+                toggleBtn.style.right = '10px';
+                toggleBtn.style.top = '50%';
+                toggleBtn.style.transform = 'translateY(-50%)';
+                toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
+                
+                const wrapper = document.createElement('div');
+                wrapper.className = 'position-relative';
+                field.parentNode.insertBefore(wrapper, field);
+                wrapper.appendChild(field);
+                wrapper.appendChild(toggleBtn);
+                
+                toggleBtn.addEventListener('click', () => {
+                    const isPassword = field.type === 'password';
+                    field.type = isPassword ? 'text' : 'password';
+                    toggleBtn.innerHTML = isPassword ? '<i class="fas fa-eye-slash"></i>' : '<i class="fas fa-eye"></i>';
+                });
+            });
+            
+            // Form submission loading state
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', (e) => {
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Loading...';
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+---
+
+## server/views/auth/login.ejs
+
+```html
+<div class="auth-header">
+    <h2 class="mb-0">
+        <i class="fas fa-sign-in-alt me-2"></i>
+        Welcome Back
+    </h2>
+    <p class="mb-0 mt-2 opacity-75">Sign in to your account</p>
+</div>
+
+<div class="auth-body">
+    <form action="/auth/login" method="POST" data-validate>
+        <div class="mb-3">
+            <label for="email" class="form-label">Email Address</label>
+            <input 
+                type="email" 
+                class="form-control" 
+                id="email" 
+                name="email" 
+                placeholder="Enter your email"
+                value="<%= typeof email !== 'undefined' ? email : '' %>"
+                required
+            >
+            <div class="invalid-feedback">
+                Please provide a valid email address.
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input 
+                type="password" 
+                class="form-control" 
+                id="password" 
+                name="password" 
+                placeholder="Enter your password"
+                required
+                minlength="6"
+            >
+            <div class="invalid-feedback">
+                Password must be at least 6 characters long.
+            </div>
+        </div>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+            <label class="form-check-label" for="remember">
+                Remember me
+            </label>
+        </div>
+        
+        <button type="submit" class="btn btn-auth text-white w-100">
+            <i class="fas fa-sign-in-alt me-2"></i>Sign In
+        </button>
+    </form>
+    
+    <div class="divider">
+        <span>or</span>
+    </div>
+    
+    <a href="/auth/google" class="btn btn-google text-white w-100">
+        <i class="fab fa-google me-2"></i>Continue with Google
+    </a>
+    
+    <div class="auth-links mt-3">
+        <div class="row">
+            <div class="col-6 text-start">
+                <a href="/auth/forgot-password">Forgot Password?</a>
+            </div>
+            <div class="col-6 text-end">
+                <a href="/auth/register">Create Account</a>
+            </div>
+        </div>
+    </div>
+</div>
+```
+
+---
+
+## server/views/auth/register.ejs
+
+```html
+<div class="auth-header">
+    <h2 class="mb-0">
+        <i class="fas fa-user-plus me-2"></i>
+        Create Account
+    </h2>
+    <p class="mb-0 mt-2 opacity-75">Join us today</p>
+</div>
+
+<div class="auth-body">
+    <form action="/auth/register" method="POST" data-validate>
+        <div class="mb-3">
+            <label for="name" class="form-label">Full Name</label>
+            <input 
+                type="text" 
+                class="form-control" 
+                id="name" 
+                name="name" 
+                placeholder="Enter your full name"
+                value="<%= typeof name !== 'undefined' ? name : '' %>"
+                required
+                minlength="2"
+                maxlength="50"
+            >
+            <div class="invalid-feedback">
+                Name must be between 2 and 50 characters.
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label for="email" class="form-label">Email Address</label>
+            <input 
+                type="email" 
+                class="form-control" 
+                id="email" 
+                name="email" 
+                placeholder="Enter your email"
+                value="<%= typeof email !== 'undefined' ? email : '' %>"
+                required
+            >
+            <div class="invalid-feedback">
+                Please provide a valid email address.
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input 
+                type="password" 
+                class="form-control" 
+                id="password" 
+                name="password" 
+                placeholder="Choose a strong password"
+                required
+                minlength="6"
+            >
+            <div class="invalid-feedback">
+                Password must be at least 6 characters long.
+            </div>
+            <div class="form-text">
+                <small>Use at least 6 characters with a mix of letters and numbers.</small>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <input 
+                type="password" 
+                class="form-control" 
+                id="confirmPassword" 
+                name="confirmPassword" 
+                placeholder="Confirm your password"
+                required
+                minlength="6"
+            >
+            <div class="invalid-feedback">
+                Passwords must match.
+            </div>
+        </div>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="terms" name="terms" required>
+            <label class="form-check-label" for="terms">
+                I agree to the <a href="/terms" target="_blank">Terms of Service</a> and 
+                <a href="/privacy" target="_blank">Privacy Policy</a>
+            </label>
+            <div class="invalid-feedback">
+                You must agree to the terms and conditions.
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-auth text-white w-100">
+            <i class="fas fa-user-plus me-2"></i>Create Account
+        </button>
+    </form>
+    
+    <div class="divider">
+        <span>or</span>
+    </div>
+    
+    <a href="/auth/google" class="btn btn-google text-white w-100">
+        <i class="fab fa-google me-2"></i>Sign up with Google
+    </a>
+    
+    <div class="auth-links mt-3 text-center">
+        <p class="mb-0">Already have an account? <a href="/auth/login">Sign In</a></p>
+    </div>
+</div>
+
+<script>
+    // Password confirmation validation
+    document.addEventListener('DOMContentLoaded', () => {
+        const password = document.getElementById('password');
+        const confirmPassword = document.getElementById('confirmPassword');
+        
+        const validatePasswords = () => {
+            if (password.value !== confirmPassword.value) {
+                confirmPassword.setCustomValidity('Passwords do not match');
+            } else {
+                confirmPassword.setCustomValidity('');
+            }
+        };
+        
+        password.addEventListener('input', validatePasswords);
+        confirmPassword.addEventListener('input', validatePasswords);
+    });
+</script>
+```
+
+---
+
+## server/views/auth/forgot-password.ejs
+
+```html
+<div class="auth-header">
+    <h2 class="mb-0">
+        <i class="fas fa-key me-2"></i>
+        Reset Password
+    </h2>
+    <p class="mb-0 mt-2 opacity-75">Enter your email to reset your password</p>
+</div>
+
+<div class="auth-body">
+    <% if (typeof step === 'undefined' || step === 'email') { %>
+        <!-- Step 1: Email Input -->
+        <form action="/auth/forgot-password" method="POST" data-validate>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email Address</label>
+                <input 
+                    type="email" 
+                    class="form-control" 
+                    id="email" 
+                    name="email" 
+                    placeholder="Enter your email address"
+                    required
+                >
+                <div class="invalid-feedback">
+                    Please provide a valid email address.
+                </div>
+                <div class="form-text">
+                    <small>We'll send you instructions to reset your password.</small>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-auth text-white w-100">
+                <i class="fas fa-paper-plane me-2"></i>Send Reset Link
+            </button>
+        </form>
+    <% } else if (step === 'sent') { %>
+        <!-- Step 2: Email Sent Confirmation -->
+        <div class="text-center">
+            <div class="mb-4">
+                <i class="fas fa-envelope-circle-check text-success" style="font-size: 4rem;"></i>
+            </div>
+            <h4 class="text-success mb-3">Email Sent!</h4>
+            <p class="mb-4">
+                We've sent password reset instructions to <strong><%= email %></strong>.
+                Please check your email and follow the link to reset your password.
+            </p>
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                If you don't see the email, check your spam folder or 
+                <a href="/auth/forgot-password" class="alert-link">try again</a>.
+            </div>
+        </div>
+    <% } else if (step === 'reset') { %>
+        <!-- Step 3: New Password Form -->
+        <form action="/auth/reset-password" method="POST" data-validate>
+            <input type="hidden" name="token" value="<%= token %>">
+            
+            <div class="mb-3">
+                <label for="password" class="form-label">New Password</label>
+                <input 
+                    type="password" 
+                    class="form-control" 
+                    id="password" 
+                    name="password" 
+                    placeholder="Enter new password"
+                    required
+                    minlength="6"
+                >
+                <div class="invalid-feedback">
+                    Password must be at least 6 characters long.
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Confirm New Password</label>
+                <input 
+                    type="password" 
+                    class="form-control" 
+                    id="confirmPassword" 
+                    name="confirmPassword" 
+                    placeholder="Confirm new password"
+                    required
+                    minlength="6"
+                >
+                <div class="invalid-feedback">
+                    Passwords must match.
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-auth text-white w-100">
+                <i class="fas fa-lock me-2"></i>Update Password
+            </button>
+        </form>
+    <% } %>
+    
+    <div class="auth-links mt-3 text-center">
+        <a href="/auth/login">
+            <i class="fas fa-arrow-left me-1"></i>Back to Login
+        </a>
+    </div>
+</div>
+```
+
+## server/views/dashboard/index.ejs
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - FullStack App</title>
+    <!-- Bootstrap CSS for responsive design -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+    <!-- Include header partial -->
+    <%- include('../partials/header') %>
+    
+    <!-- Main dashboard content -->
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard/profile">
+                                <i class="fas fa-user me-2"></i>
+                                Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">
+                                <i class="fas fa-cog me-2"></i>
+                                Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Dashboard</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <div class="btn-group me-2">
+                            <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Welcome message with user data -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-success" role="alert">
+                            <h4 class="alert-heading">Welcome back, <%= user.name %>!</h4>
+                            <p>Last login: <%= new Date(user.lastLogin).toLocaleString() %></p>
+                            <hr>
+                            <p class="mb-0">You have successfully logged in to your dashboard.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Statistics cards -->
+                <div class="row mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Total Users
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            <%= stats.totalUsers || 0 %>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Active Sessions
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            <%= stats.activeSessions || 0 %>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Login Count
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            <%= user.loginCount || 0 %>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-sign-in-alt fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            Account Status
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            <%= user.status || 'Active' %>
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent activity -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Recent Activity</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered" width="100%" cellspacing="0">
+                                        <thead>
+                                            <tr>
+                                                <th>Date</th>
+                                                <th>Activity</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <% if (activities && activities.length > 0) { %>
+                                                <% activities.forEach(activity => { %>
+                                                    <tr>
+                                                        <td><%= new Date(activity.date).toLocaleDateString() %></td>
+                                                        <td><%= activity.description %></td>
+                                                        <td>
+                                                            <span class="badge bg-<%= activity.status === 'success' ? 'success' : 'secondary' %>">
+                                                                <%= activity.status %>
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                <% }) %>
+                                            <% } else { %>
+                                                <tr>
+                                                    <td colspan="3" class="text-center">No recent activity</td>
+                                                </tr>
+                                            <% } %>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <a href="/dashboard/profile" class="btn btn-primary">
+                                        <i class="fas fa-user me-2"></i>Edit Profile
+                                    </a>
+                                    <a href="/settings" class="btn btn-secondary">
+                                        <i class="fas fa-cog me-2"></i>Settings
+                                    </a>
+                                    <a href="/support" class="btn btn-info">
+                                        <i class="fas fa-question-circle me-2"></i>Get Support
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Include footer partial -->
+    <%- include('../partials/footer') %>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="/js/dashboard.js"></script>
+</body>
+</html>
+```
+
+---
+
+## server/views/dashboard/profile.ejs
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - FullStack App</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/css/profile.css">
+</head>
+<body>
+    <!-- Include header partial -->
+    <%- include('../partials/header') %>
+    
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky pt-3">
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/dashboard">
+                                <i class="fas fa-tachometer-alt me-2"></i>
+                                Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" href="/dashboard/profile">
+                                <i class="fas fa-user me-2"></i>
+                                Profile
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/settings">
+                                <i class="fas fa-cog me-2"></i>
+                                Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">User Profile</h1>
+                    <div class="btn-toolbar mb-2 mb-md-0">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="enableEdit()">
+                            <i class="fas fa-edit me-1"></i>Edit Profile
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Profile form -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Personal Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Success/Error messages -->
+                                <% if (typeof success !== 'undefined' && success) { %>
+                                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                        Profile updated successfully!
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                <% } %>
+                                
+                                <% if (typeof error !== 'undefined' && error) { %>
+                                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                        <%= error %>
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                <% } %>
+
+                                <form id="profileForm" method="POST" action="/dashboard/profile">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="name" class="form-label">Full Name *</label>
+                                                <input 
+                                                    type="text" 
+                                                    class="form-control" 
+                                                    id="name" 
+                                                    name="name" 
+                                                    value="<%= user.name %>" 
+                                                    readonly 
+                                                    required
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="email" class="form-label">Email Address *</label>
+                                                <input 
+                                                    type="email" 
+                                                    class="form-control" 
+                                                    id="email" 
+                                                    name="email" 
+                                                    value="<%= user.email %>" 
+                                                    readonly 
+                                                    required
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="phone" class="form-label">Phone Number</label>
+                                                <input 
+                                                    type="tel" 
+                                                    class="form-control" 
+                                                    id="phone" 
+                                                    name="phone" 
+                                                    value="<%= user.phone || '' %>" 
+                                                    readonly
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="dateOfBirth" class="form-label">Date of Birth</label>
+                                                <input 
+                                                    type="date" 
+                                                    class="form-control" 
+                                                    id="dateOfBirth" 
+                                                    name="dateOfBirth" 
+                                                    value="<%= user.dateOfBirth ? user.dateOfBirth.toISOString().split('T')[0] : '' %>" 
+                                                    readonly
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="address" class="form-label">Address</label>
+                                        <textarea 
+                                            class="form-control" 
+                                            id="address" 
+                                            name="address" 
+                                            rows="3" 
+                                            readonly
+                                        ><%= user.address || '' %></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="bio" class="form-label">Bio</label>
+                                        <textarea 
+                                            class="form-control" 
+                                            id="bio" 
+                                            name="bio" 
+                                            rows="4" 
+                                            placeholder="Tell us about yourself..." 
+                                            readonly
+                                        ><%= user.bio || '' %></textarea>
+                                    </div>
+
+                                    <!-- Hidden buttons shown when editing -->
+                                    <div id="editButtons" style="display: none;">
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i>Save Changes
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" onclick="cancelEdit()">
+                                                <i class="fas fa-times me-1"></i>Cancel
+                                            </button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Change Password Section -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5>Change Password</h5>
+                            </div>
+                            <div class="card-body">
+                                <form method="POST" action="/dashboard/change-password">
+                                    <div class="mb-3">
+                                        <label for="currentPassword" class="form-label">Current Password *</label>
+                                        <input 
+                                            type="password" 
+                                            class="form-control" 
+                                            id="currentPassword" 
+                                            name="currentPassword" 
+                                            required
+                                        >
+                                    </div>
+                                    
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="newPassword" class="form-label">New Password *</label>
+                                                <input 
+                                                    type="password" 
+                                                    class="form-control" 
+                                                    id="newPassword" 
+                                                    name="newPassword" 
+                                                    minlength="6"
+                                                    required
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="confirmPassword" class="form-label">Confirm New Password *</label>
+                                                <input 
+                                                    type="password" 
+                                                    class="form-control" 
+                                                    id="confirmPassword" 
+                                                    name="confirmPassword" 
+                                                    required
+                                                >
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <button type="submit" class="btn btn-warning">
+                                        <i class="fas fa-key me-1"></i>Change Password
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile sidebar -->
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5>Profile Summary</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <img 
+                                        src="<%= user.avatar || '/images/default-avatar.png' %>" 
+                                        alt="Profile Picture" 
+                                        class="rounded-circle" 
+                                        width="100" 
+                                        height="100"
+                                        style="object-fit: cover;"
+                                    >
+                                </div>
+                                <h5><%= user.name %></h5>
+                                <p class="text-muted"><%= user.email %></p>
+                                <div class="row text-center">
+                                    <div class="col-6">
+                                        <strong>Member Since</strong><br>
+                                        <span class="text-muted">
+                                            <%= new Date(user.createdAt).toLocaleDateString() %>
+                                        </span>
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Last Login</strong><br>
+                                        <span class="text-muted">
+                                            <%= user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never' %>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Settings -->
+                        <div class="card mt-3">
+                            <div class="card-header">
+                                <h5>Account Settings</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="list-group list-group-flush">
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        Email Notifications
+                                        <div class="form-check form-switch">
+                                            <input 
+                                                class="form-check-input" 
+                                                type="checkbox" 
+                                                id="emailNotifications"
+                                                <%= user.emailNotifications ? 'checked' : '' %>
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        SMS Notifications
+                                        <div class="form-check form-switch">
+                                            <input 
+                                                class="form-check-input" 
+                                                type="checkbox" 
+                                                id="smsNotifications"
+                                                <%= user.smsNotifications ? 'checked' : '' %>
+                                            >
+                                        </div>
+                                    </div>
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        Two-Factor Auth
+                                        <span class="badge bg-<%= user.twoFactorEnabled ? 'success' : 'secondary' %>">
+                                            <%= user.twoFactorEnabled ? 'Enabled' : 'Disabled' %>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Include footer partial -->
+    <%- include('../partials/footer') %>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript for profile editing -->
+    <script>
+        function enableEdit() {
+            // Enable all form inputs
+            const inputs = document.querySelectorAll('#profileForm input, #profileForm textarea');
+            inputs.forEach(input => {
+                input.removeAttribute('readonly');
+            });
+            
+            // Show edit buttons
+            document.getElementById('editButtons').style.display = 'block';
+            
+            // Hide edit button
+            document.querySelector('.btn-outline-secondary').style.display = 'none';
+        }
+        
+        function cancelEdit() {
+            // Disable all form inputs
+            const inputs = document.querySelectorAll('#profileForm input, #profileForm textarea');
+            inputs.forEach(input => {
+                input.setAttribute('readonly', true);
+            });
+            
+            // Hide edit buttons
+            document.getElementById('editButtons').style.display = 'none';
+            
+            // Show edit button
+            document.querySelector('.btn-outline-secondary').style.display = 'inline-block';
+            
+            // Reset form to original values
+            document.getElementById('profileForm').reset();
+        }
+        
+        // Password confirmation validation
+        document.getElementById('confirmPassword').addEventListener('input', function() {
+            const password = document.getElementById('newPassword').value;
+            const confirm = this.value;
+            
+            if (password !== confirm) {
+                this.setCustomValidity('Passwords do not match');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    </script>
+</body>
+</html>
+```
+
+## server/views/partials/header.ejs
+
+```html
+<!-- Header partial for EJS templates -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title || 'Full-Stack Web App' %></title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+        }
+        .navbar-brand {
+            font-weight: 700;
+        }
+        .footer {
+            margin-top: auto;
+        }
+        .alert {
+            border-radius: 0.5rem;
+        }
+    </style>
+</head>
+<body class="d-flex flex-column min-vh-100">
+```
+
+---
+
+## server/views/partials/footer.ejs
+
+```html
+<!-- Footer partial for EJS templates -->
+    <footer class="footer bg-dark text-light mt-auto py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>FullStack Web App</h5>
+                    <p class="mb-0">
+                        Built with Node.js, Express, MongoDB, MySQL, and modern web technologies.
+                    </p>
+                </div>
+                
+                <div class="col-md-3">
+                    <h6>Quick Links</h6>
+                    <ul class="list-unstyled">
+                        <li><a href="/" class="text-light text-decoration-none">Home</a></li>
+                        <li><a href="/about" class="text-light text-decoration-none">About</a></li>
+                        <li><a href="/contact" class="text-light text-decoration-none">Contact</a></li>
+                        <% if (locals.user) { %>
+                            <li><a href="/dashboard" class="text-light text-decoration-none">Dashboard</a></li>
+                        <% } %>
+                    </ul>
+                </div>
+                
+                <div class="col-md-3">
+                    <h6>Technologies</h6>
+                    <ul class="list-unstyled small">
+                        <li>Node.js & Express</li>
+                        <li>MongoDB & MySQL</li>
+                        <li>JWT & OAuth</li>
+                        <li>React & Bootstrap</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <hr class="my-3">
+            
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <p class="mb-0">
+                        &copy; <%= new Date().getFullYear() %> FullStack Web App. All rights reserved.
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <small class="text-muted">
+                        Server-side rendered with EJS
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Custom JavaScript -->
+    <script>
+        // Flash message auto-hide
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert) {
+                        alert.style.transition = 'opacity 0.5s';
+                        alert.style.opacity = '0';
+                        setTimeout(() => alert.remove(), 500);
+                    }
+                }, 5000); // Auto-hide after 5 seconds
+            });
+        });
+    </script>
+</body>
+</html>
+```
+
+---
+
+## server/views/partials/navbar.ejs
+
+```html
+<!-- Navbar partial for EJS templates -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <!-- Brand -->
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-code me-2"></i>
+            FullStack App
+        </a>
+        
+        <!-- Mobile toggle button -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <!-- Navigation items -->
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link <%= (typeof page !== 'undefined' && page === 'home') ? 'active' : '' %>" href="/">
+                        <i class="fas fa-home me-1"></i>Home
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <%= (typeof page !== 'undefined' && page === 'about') ? 'active' : '' %>" href="/about">
+                        <i class="fas fa-info-circle me-1"></i>About
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <%= (typeof page !== 'undefined' && page === 'contact') ? 'active' : '' %>" href="/contact">
+                        <i class="fas fa-envelope me-1"></i>Contact
+                    </a>
+                </li>
+                
+                <!-- Authenticated user links -->
+                <% if (locals.user) { %>
+                    <li class="nav-item">
+                        <a class="nav-link <%= (typeof page !== 'undefined' && page === 'dashboard') ? 'active' : '' %>" href="/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    
+                    <!-- Admin-only links -->
+                    <% if (locals.user.role === 'admin') { %>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-cog me-1"></i>Admin
+                            </a>
+                            <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                <li><a class="dropdown-item" href="/admin/users"><i class="fas fa-users me-2"></i>Manage Users</a></li>
+                                <li><a class="dropdown-item" href="/admin/settings"><i class="fas fa-settings me-2"></i>Settings</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/admin/logs"><i class="fas fa-file-alt me-2"></i>System Logs</a></li>
+                            </ul>
+                        </li>
+                    <% } %>
+                <% } %>
+            </ul>
+            
+            <!-- Authentication buttons -->
+            <div class="d-flex align-items-center">
+                <% if (locals.user) { %>
+                    <!-- Logged in user -->
+                    <div class="dropdown">
+                        <button class="btn btn-outline-light dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user me-1"></i>
+                            <%= user.name %>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li>
+                                <a class="dropdown-item" href="/profile">
+                                    <i class="fas fa-user-circle me-2"></i>Profile
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="/settings">
+                                    <i class="fas fa-cog me-2"></i>Settings
+                                </a>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <form action="/auth/logout" method="POST" class="d-inline">
+                                    <button type="submit" class="dropdown-item text-danger">
+                                        <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                    </button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
+                <% } else { %>
+                    <!-- Not logged in -->
+                    <div class="d-flex gap-2">
+                        <a href="/auth/login" class="btn btn-outline-light btn-sm">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                        <a href="/auth/register" class="btn btn-primary btn-sm">
+                            <i class="fas fa-user-plus me-1"></i>Register
+                        </a>
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash messages -->
+<% if (locals.messages) { %>
+    <div class="container mt-3">
+        <!-- Success messages -->
+        <% if (messages.success) { %>
+            <% messages.success.forEach(function(message) { %>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% }); %>
+        <% } %>
+        
+        <!-- Error messages -->
+        <% if (messages.error) { %>
+            <% messages.error.forEach(function(message) { %>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% }); %>
+        <% } %>
+        
+        <!-- Warning messages -->
+        <% if (messages.warning) { %>
+            <% messages.warning.forEach(function(message) { %>
+                <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% }); %>
+        <% } %>
+        
+        <!-- Info messages -->
+        <% if (messages.info) { %>
+            <% messages.info.forEach(function(message) { %>
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <%= message %>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <% }); %>
+        <% } %>
+    </div>
+<% } %>
+```
+
+---
+
+## server/views/errors/404.ejs
+
+```html
+<!-- 404 Error Page -->
+<%- include('../partials/header', { title: '404 - Page Not Found' }) %>
+<%- include('../partials/navbar', { page: '404' }) %>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <!-- Error illustration -->
+            <div class="mb-4">
+                <i class="fas fa-exclamation-triangle text-warning" style="font-size: 8rem;"></i>
+            </div>
+            
+            <!-- Error message -->
+            <h1 class="display-1 fw-bold text-primary">404</h1>
+            <h2 class="mb-3">Oops! Page Not Found</h2>
+            <p class="lead mb-4">
+                The page you're looking for doesn't exist. It might have been moved, deleted, or you entered the wrong URL.
+            </p>
+            
+            <!-- Helpful information -->
+            <div class="row text-start mb-4">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-lightbulb text-warning me-2"></i>What you can do:</h5>
+                    <ul>
+                        <li>Check the URL for typing errors</li>
+                        <li>Go back to the previous page</li>
+                        <li>Visit our homepage</li>
+                        <li>Use the search feature</li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5><i class="fas fa-link text-info me-2"></i>Quick Links:</h5>
+                    <ul>
+                        <li><a href="/" class="text-decoration-none">Homepage</a></li>
+                        <li><a href="/about" class="text-decoration-none">About Us</a></li>
+                        <li><a href="/contact" class="text-decoration-none">Contact</a></li>
+                        <% if (locals.user) { %>
+                            <li><a href="/dashboard" class="text-decoration-none">Dashboard</a></li>
+                        <% } else { %>
+                            <li><a href="/auth/login" class="text-decoration-none">Login</a></li>
+                        <% } %>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <a href="/" class="btn btn-primary btn-lg">
+                    <i class="fas fa-home me-2"></i>Go Home
+                </a>
+                
+                <button onclick="history.back()" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>Go Back
+                </button>
+                
+                <a href="/contact" class="btn btn-outline-info btn-lg">
+                    <i class="fas fa-envelope me-2"></i>Contact Support
+                </a>
+            </div>
+            
+            <!-- Search box -->
+            <div class="mt-5">
+                <form action="/search" method="GET" class="d-flex justify-content-center">
+                    <div class="input-group" style="max-width: 400px;">
+                        <input 
+                            type="text" 
+                            class="form-control" 
+                            placeholder="Search our website..." 
+                            name="q"
+                            required
+                        >
+                        <button class="btn btn-outline-primary" type="submit">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Additional info section -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body text-center">
+                    <h5 class="card-title">Need Help?</h5>
+                    <p class="card-text">
+                        If you believe this is an error or need assistance, please don't hesitate to reach out to our support team.
+                    </p>
+                    <small class="text-muted">
+                        Error Code: 404 | Timestamp: <%= new Date().toISOString() %>
+                        <% if (locals.requestUrl) { %>
+                            | Requested URL: <%= requestUrl %>
+                        <% } %>
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/footer') %>
+```
+
+---
+
+## server/views/errors/500.ejs
+
+```html
+<!-- 500 Internal Server Error Page -->
+<%- include('../partials/header', { title: '500 - Server Error' }) %>
+<%- include('../partials/navbar', { page: '500' }) %>
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <!-- Error illustration -->
+            <div class="mb-4">
+                <i class="fas fa-server text-danger" style="font-size: 8rem;"></i>
+            </div>
+            
+            <!-- Error message -->
+            <h1 class="display-1 fw-bold text-danger">500</h1>
+            <h2 class="mb-3">Internal Server Error</h2>
+            <p class="lead mb-4">
+                Something went wrong on our end. We're working to fix this issue as quickly as possible.
+            </p>
+            
+            <!-- Error details (only in development) -->
+            <% if (typeof error !== 'undefined' && process.env.NODE_ENV === 'development') { %>
+                <div class="alert alert-danger text-start mb-4">
+                    <h5><i class="fas fa-bug me-2"></i>Debug Information:</h5>
+                    <pre class="mb-0"><%= error.stack || error.message || error %></pre>
+                </div>
+            <% } %>
+            
+            <!-- Helpful information -->
+            <div class="row text-start mb-4">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-info-circle text-info me-2"></i>What happened?</h5>
+                    <ul>
+                        <li>A server error occurred</li>
+                        <li>The request couldn't be processed</li>
+                        <li>Our team has been notified</li>
+                        <li>We're working on a fix</li>
+                    </ul>
+                </div>
+                
+                <div class="col-md-6">
+                    <h5><i class="fas fa-tools text-warning me-2"></i>What you can do:</h5>
+                    <ul>
+                        <li>Refresh the page in a few minutes</li>
+                        <li>Try again later</li>
+                        <li>Contact support if issue persists</li>
+                        <li>Check our status page</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Action buttons -->
+            <div class="d-flex justify-content-center gap-3 flex-wrap">
+                <button onclick="location.reload()" class="btn btn-primary btn-lg">
+                    <i class="fas fa-redo me-2"></i>Try Again
+                </button>
+                
+                <a href="/" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-home me-2"></i>Go Home
+                </a>
+                
+                <button onclick="history.back()" class="btn btn-outline-secondary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>Go Back
+                </button>
+                
+                <a href="/contact" class="btn btn-outline-danger btn-lg">
+                    <i class="fas fa-life-ring me-2"></i>Get Help
+                </a>
+            </div>
+            
+            <!-- Status check -->
+            <div class="mt-5">
+                <div class="card border-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-heartbeat text-warning me-2"></i>
+                            System Status
+                        </h5>
+                        <div class="d-flex justify-content-center align-items-center">
+                            <div class="spinner-border spinner-border-sm text-warning me-2" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span>Checking system status...</span>
+                        </div>
+                        <div class="mt-3">
+                            <a href="/status" class="btn btn-sm btn-outline-warning">
+                                View Status Page
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error reporting -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body">
+                    <h5 class="card-title text-center">Report This Error</h5>
+                    <p class="text-center mb-3">
+                        Help us improve by reporting this error. Your feedback is valuable to us.
+                    </p>
+                    
+                    <form action="/report-error" method="POST" class="row g-3">
+                        <div class="col-md-6">
+                            <input type="email" class="form-control" placeholder="Your email (optional)" name="email">
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" class="form-control" placeholder="What were you trying to do?" name="action" required>
+                        </div>
+                        <div class="col-12">
+                            <textarea class="form-control" rows="3" placeholder="Additional details..." name="description"></textarea>
+                        </div>
+                        <div class="col-12 text-center">
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-paper-plane me-2"></i>Send Report
+                            </button>
+                        </div>
+                        
+                        <!-- Hidden fields for error tracking -->
+                        <input type="hidden" name="errorId" value="<%= new Date().getTime() %>">
+                        <input type="hidden" name="timestamp" value="<%= new Date().toISOString() %>">
+                        <% if (locals.requestUrl) { %>
+                            <input type="hidden" name="url" value="<%= requestUrl %>">
+                        <% } %>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Technical details -->
+    <div class="row mt-3">
+        <div class="col-12">
+            <small class="text-muted d-block text-center">
+                Error ID: ERR-<%= new Date().getTime() %> | 
+                Timestamp: <%= new Date().toISOString() %>
+                <% if (locals.requestUrl) { %>
+                    | URL: <%= requestUrl %>
+                <% } %>
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- Auto-refresh script -->
+<script>
+    // Auto-refresh page after 30 seconds (optional)
+    let autoRefresh = false;
+    
+    if (autoRefresh) {
+        setTimeout(() => {
+            if (confirm('Would you like to try refreshing the page?')) {
+                location.reload();
+            }
+        }, 30000);
+    }
+    
+    // Status check functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        // Simulate status check
+        setTimeout(() => {
+            const statusElement = document.querySelector('.spinner-border').parentElement;
+            statusElement.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>System experiencing issues';
+        }, 2000);
+    });
+</script>
+
+<%- include('../partials/footer') %>
+```
+
+
+---
+
 ## server/routes/authRoutes.js
 
 ```javascript
