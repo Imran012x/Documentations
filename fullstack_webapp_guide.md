@@ -10041,7 +10041,6 @@ All endpoints return errors in the following format:
 - 429: Too Many Requests
 - 500: Internal Server Error
 ```
-
 ---
 
 ## docs/SETUP.md
@@ -10064,18 +10063,21 @@ All endpoints return errors in the following format:
 ```bash
 git clone <repository-url>
 cd fullstack-webapp
+```
 
 ### 2. Backend Setup
 
 ```bash
 cd server
 npm install
+```
 
 ### 3. Frontend Setup
 
 ```bash
 cd client
 npm install
+```
 
 ### 4. Environment Configuration
 
@@ -10083,6 +10085,7 @@ Copy `.env.example` to `.env` and configure:
 
 ```bash
 cp .env.example .env
+```
 
 Edit `.env` with your configuration:
 
@@ -10120,6 +10123,7 @@ SMTP_PASS=your_app_password
 # Security
 SESSION_SECRET=your_session_secret
 BCRYPT_ROUNDS=12
+```
 
 ### 5. Database Setup
 
@@ -10130,15 +10134,18 @@ Make sure MongoDB is running locally or use a cloud service like MongoDB Atlas.
 1. Create database:
 ```sql
 CREATE DATABASE fullstack_app;
+```
 
 2. Run migrations:
 ```bash
 cd server
 npm run migrate
+```
 
 3. Seed database (optional):
 ```bash
 npm run seed
+```
 
 ### 6. Running the Application
 
@@ -10148,11 +10155,13 @@ Terminal 1 (Backend):
 ```bash
 cd server
 npm run dev
+```
 
 Terminal 2 (Frontend):
 ```bash
 cd client
 npm start
+```
 
 #### Production Mode
 
@@ -10160,6 +10169,7 @@ Build frontend:
 ```bash
 cd client
 npm run build
+```
 
 Start production server:
 ```bash
@@ -10201,6 +10211,7 @@ npm start
 - Use MongoDB Compass for database inspection
 - Use Postman for API testing
 ```
+
 ---
 
 ## docs/DEPLOYMENT.md
@@ -10222,6 +10233,7 @@ npm start
 1. **Build and run with Docker Compose:**
 ```bash
 docker-compose up -d --build
+```
 
 2. **Environment Configuration:**
 Update `docker-compose.yml` environment variables for production.
@@ -10237,6 +10249,7 @@ nginx:
   volumes:
     - ./nginx.conf:/etc/nginx/nginx.conf
     - ./ssl:/etc/ssl/certs
+```
 
 ### Option 2: Manual Deployment
 
@@ -10263,6 +10276,7 @@ sudo npm install -g pm2
 
 # Install Nginx
 sudo apt install nginx -y
+```
 
 2. **Application Deployment:**
 ```bash
@@ -10276,6 +10290,7 @@ cd ../client && npm install && npm run build
 
 # Copy built files to server directory
 sudo cp -r build/* /var/www/html/
+```
 
 3. **PM2 Configuration:**
 ```javascript
@@ -10295,12 +10310,14 @@ module.exports = {
     }
   }]
 };
+```
 
 4. **Start Application:**
 ```bash
 pm2 start ecosystem.config.js --env production
 pm2 save
 pm2 startup
+```
 
 5. **Nginx Configuration:**
 ```nginx
@@ -10328,12 +10345,14 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 }
+```
 
 6. **Enable Site:**
 ```bash
 sudo ln -s /etc/nginx/sites-available/fullstack-app /etc/nginx/sites-enabled/
 sudo nginx -t
 sudo systemctl reload nginx
+```
 
 ### Option 3: Cloud Deployment
 
@@ -10347,6 +10366,7 @@ sudo systemctl reload nginx
     "heroku-postbuild": "cd ../client && npm install && npm run build"
   }
 }
+```
 
 2. **Deploy:**
 ```bash
@@ -10354,6 +10374,7 @@ heroku create your-app-name
 heroku config:set NODE_ENV=production
 heroku config:set MONGODB_URI=your_mongodb_uri
 git push heroku main
+```
 
 #### AWS/DigitalOcean
 
@@ -10393,12 +10414,13 @@ git push heroku main
 ```bash
 pm2 monit
 pm2 logs
+```
 
 #### Health Checks
 ```bash
 # Add health check endpoint
 curl https://yourdomain.com/api/health
-
+```
 
 ### Backup Strategy
 
@@ -10409,6 +10431,7 @@ mongodump --uri="mongodb://..." --out=/backup/mongo/
 
 # MySQL
 mysqldump -u user -p database > backup.sql
+```
 
 #### Application Backups
 ```bash
