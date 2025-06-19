@@ -6089,3 +6089,650 @@ class Helpers {
 module.exports = Helpers;
 ```
 
+
+## server/security/rateLimiter.js
+
+```javascript
+const rateLimit = require('express-rate-limit');
+const RedisStore = require('rate-limit-redis');
+const redis = require('redis');
+
+// Redis client for rate limiting (optional, falls back to memory)
+let redisClient;
+try {
+    redisClient = redis.createClient({
+        host: process.env.REDIS_HOST || 'localhost',
+        port: process.env.REDIS_PORT || 6379
+    });
+} catch (error) {
+    console.warn('Redis not available, using memory store for rate limiting');
+}
+
+// General API rate limiter
+const apiLimiter = rateLimit({
+    store: redisClient ? new RedisStore({ client: redisClient }) : undefined,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per windowMs
+    message: {
+        error: 'Too many requests from this IP, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true, // Return rate limit info in headers
+    legacyHeaders: false, // Disable X-RateLimit-* headers
+});
+
+// Strict limiter for authentication routes
+const authLimiter = rateLimit({
+    store: redisClient ? new RedisStore({ client: redisClient }) : undefined,
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per windowMs
+    message: {
+        error: 'Too many authentication attempts, please try again later.',
+        retryAfter: '15 minutes'
+    },
+    skipSuccessfulRequests: true, // Don't count successful requests
+});
+
+// Password reset limiter
+const passwordResetLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // Limit each IP to 3 password reset requests per hour
+    message: {
+        error: 'Too many password reset attempts, please try again later.',
+        retryAfter: '1 hour'
+    },
+});
+
+// Account creation limiter
+const createAccountLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 3, // Limit each IP to 3 account creation requests per hour
+    message: {
+        error: 'Too many accounts created from this IP, please try again later.',
+        retryAfter: '1 hour'
+    },
+});
+
+module.exports = {
+    apiLimiter,
+    authLimiter,
+    passwordResetLimiter,
+    createAccountLimiter
+};
+```
+
+---
+
+## server/security/sanitizer.js
+
+```javascript
+const validator = require('validator');
+const DOMPurify = require('isomorphic-dompurify');
+
+// ES6+ class for input sanitization
+class Sanitizer {
+    // Sanitize string input to prevent XSS
+    static sanitizeString(input) {
+        if (!input || typeof input !== 'string') return '';
+        
+        // Trim whitespace and remove HTML tags
+        const trimmed = input.trim();
+        const escaped = validator.escape(trimmed);
+        
+        return DOMPurify.sanitize(escaped);
+    }
+
+    // Sanitize email input
+    static sanitizeEmail(email) {
+        if (!email || typeof email !== 'string') return '';
+        
+        const trimmed = email.trim().toLowerCase();
+        return validator.isEmail(trimmed) ? validator.normalizeEmail(trimmed) : '';
+    }
+
+    // Sanitize phone number
+    static sanitizePhone(phone) {
+        if (!phone || typeof phone !== 'string') return '';
+        
+        // Remove all non-digit characters except + for country code
+        return phone.replace(/[^\d+]/g, '');
+    }
+
+    // Sanitize URL input
+    static sanitizeUrl(url) {
+        if (!url || typeof url !== 'string') return '';
+        
+        const trimmed = url.trim();
+        return validator.isURL(trimmed) ? trimmed : '';
+    }
+
+    // Sanitize object inputs recursively
+    static sanitizeObject(obj) {
+        if (!obj || typeof obj !== 'object') return {};
+        
+        const sanitized = {};
+        
+        // ES6+ Object.entries for iteration
+        for (const [key, value] of Object.entries(obj)) {
+            if (typeof value === 'string') {
+                sanitized[key] = this.sanitizeString(value);
+            } else if (typeof value === 'object' && value !== null) {
+                sanitized[key] = this.sanitizeObject(value);
+            } else {
+                sanitized[key] = value;
+            }
+        }
+        
+        return sanitized;
+    }
+
+    // Validate and sanitize user input for registration
+    static sanitizeUserRegistration(userData) {
+        return {
+            name: this.sanitizeString(userData.name),
+            email: this.sanitizeEmail(userData.email),
+            phone: userData.phone ? this.sanitizePhone(userData.phone) : '',
+            bio: userData.bio ? this.sanitizeString(userData.bio) : ''
+        };
+    }
+
+    // Validate and sanitize search queries
+    static sanitizeSearchQuery(query) {
+        if (!query || typeof query !== 'string') return '';
+        
+        // Remove potential SQL injection patterns
+        const dangerous = /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi;
+        let sanitized = query.replace(dangerous, '');
+        
+        return this.sanitizeString(sanitized);
+    }
+}
+
+// Express middleware for request sanitization
+const sanitizeMiddleware = (req, res, next) => {
+    try {
+        // Sanitize request body
+        if (req.body && typeof req.body === 'object') {
+            req.body = Sanitizer.sanitizeObject(req.body);
+        }
+        
+        // Sanitize query parameters
+        if (req.query && typeof req.query === 'object') {
+            req.query = Sanitizer.sanitizeObject(req.query);
+        }
+        
+        next();
+    } catch (error) {
+        console.error('Sanitization error:', error);
+        res.status(400).json({ error: 'Invalid input data' });
+    }
+};
+
+module.exports = {
+    Sanitizer,
+    sanitizeMiddleware
+};
+```
+
+---
+
+## server/security/encryption.js
+
+```javascript
+const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+
+// ES6+ class for encryption utilities
+class Encryption {
+    // Generate salt for password hashing
+    static async generateSalt(rounds = 12) {
+        return await bcrypt.genSalt(rounds);
+    }
+
+    // Hash password with salt
+    static async hashPassword(password, salt = null) {
+        if (!salt) {
+            salt = await this.generateSalt();
+        }
+        return await bcrypt.hash(password, salt);
+    }
+
+    // Compare password with hash
+    static async comparePassword(password, hash) {
+        return await bcrypt.compare(password, hash);
+    }
+
+    // Generate random token
+    static generateRandomToken(length = 32) {
+        return crypto.randomBytes(length).toString('hex');
+    }
+
+    // Generate secure session ID
+    static generateSessionId() {
+        return crypto.randomBytes(32).toString('hex');
+    }
+
+    // Encrypt sensitive data
+    static encrypt(text, key = process.env.ENCRYPTION_KEY) {
+        if (!key) throw new Error('Encryption key is required');
+        
+        const iv = crypto.randomBytes(16);
+        const cipher = crypto.createCipher('aes-256-cbc', key);
+        
+        let encrypted = cipher.update(text, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        
+        return iv.toString('hex') + ':' + encrypted;
+    }
+
+    // Decrypt sensitive data
+    static decrypt(encryptedText, key = process.env.ENCRYPTION_KEY) {
+        if (!key) throw new Error('Encryption key is required');
+        
+        const parts = encryptedText.split(':');
+        const iv = Buffer.from(parts[0], 'hex');
+        const encrypted = parts[1];
+        
+        const decipher = crypto.createDecipher('aes-256-cbc', key);
+        
+        let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+    }
+
+    // Generate CSRF token
+    static generateCSRFToken() {
+        return crypto.randomBytes(24).toString('hex');
+    }
+
+    // Validate CSRF token
+    static validateCSRFToken(token, sessionToken) {
+        return token === sessionToken;
+    }
+}
+
+module.exports = Encryption;
+```
+
+---
+
+## server/app.js
+
+```javascript
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const session = require('express-session');
+const MongoStore = require('connect-mongo');
+const passport = require('passport');
+const path = require('path');
+require('dotenv').config();
+
+// Import middleware
+const { apiLimiter } = require('./security/rateLimiter');
+const { sanitizeMiddleware } = require('./security/sanitizer');
+const errorHandler = require('./middleware/errorHandler');
+const logger = require('./middleware/logger');
+
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
+const apiRoutes = require('./routes/apiRoutes');
+const viewRoutes = require('./routes/viewRoutes');
+
+// Import configurations
+require('./config/passport');
+
+const app = express();
+
+// Security middleware
+app.use(helmet()); // Set security headers
+app.use(cors({
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    credentials: true
+}));
+
+// Rate limiting
+app.use('/api', apiLimiter);
+
+// Body parsing middleware
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Input sanitization
+app.use(sanitizeMiddleware);
+
+// Session configuration
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'your-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI || 'mongodb://localhost:27017/fullstack_app'
+    }),
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // HTTPS in production
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+}));
+
+// Passport middleware
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Static files
+app.use(express.static(path.join(__dirname, '../client/build')));
+
+// View engine setup (EJS)
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
+// Request logging
+app.use(logger);
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api', apiRoutes);
+
+// View Routes (for server-side rendering)
+app.use('/', viewRoutes);
+
+// Serve React app for client-side routing
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../client/build/index.html'));
+});
+
+// Error handling middleware
+app.use(errorHandler);
+
+module.exports = app;
+```
+
+---
+
+## server/server.js
+
+```javascript
+const app = require('./app');
+const connectDB = require('./config/database');
+
+// Load environment variables
+require('dotenv').config();
+
+const PORT = process.env.PORT || 5000;
+
+// Connect to databases
+connectDB();
+
+// Start server
+const server = app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+    console.log('SIGTERM received. Shutting down gracefully...');
+    server.close(() => {
+        console.log('Process terminated');
+    });
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT received. Shutting down gracefully...');
+    server.close(() => {
+        console.log('Process terminated');
+    });
+});
+
+module.exports = server;
+```
+
+---
+
+## server/package.json
+
+```json
+{
+  "name": "fullstack-webapp-server",
+  "version": "1.0.0",
+  "description": "Full-stack web application backend",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.0.3",
+    "mysql2": "^3.2.0",
+    "sequelize": "^6.30.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.0",
+    "passport": "^0.6.0",
+    "passport-local": "^1.0.0",
+    "passport-google-oauth20": "^2.0.0",
+    "passport-jwt": "^4.0.1",
+    "express-session": "^1.17.3",
+    "connect-mongo": "^5.0.0",
+    "express-rate-limit": "^6.7.0",
+    "rate-limit-redis": "^3.0.1",
+    "redis": "^4.6.5",
+    "cors": "^2.8.5",
+    "helmet": "^6.1.5",
+    "express-validator": "^6.15.0",
+    "validator": "^13.9.0",
+    "isomorphic-dompurify": "^2.0.0",
+    "dotenv": "^16.0.3",
+    "ejs": "^3.1.9",
+    "nodemailer": "^6.9.1",
+    "crypto": "^1.0.1",
+    "winston": "^3.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22",
+    "jest": "^29.5.0",
+    "supertest": "^6.3.3"
+  },
+  "keywords": [
+    "fullstack",
+    "nodejs",
+    "express",
+    "mongodb",
+    "mysql",
+    "authentication",
+    "jwt",
+    "oauth"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
+```
+
+---
+
+## database/migrations/001_create_users_table.sql
+
+```sql
+-- MySQL migration for users table
+-- Run this migration first
+
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password VARCHAR(255), -- Nullable for OAuth users
+    phone VARCHAR(20),
+    bio TEXT,
+    avatar VARCHAR(500),
+    role ENUM('user', 'admin') DEFAULT 'user',
+    provider ENUM('local', 'google') DEFAULT 'local',
+    provider_id VARCHAR(255), -- For OAuth providers
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verification_token VARCHAR(255),
+    password_reset_token VARCHAR(255),
+    password_reset_expires DATETIME,
+    login_count INT DEFAULT 0,
+    last_login DATETIME,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Indexes for performance
+    INDEX idx_email (email),
+    INDEX idx_provider (provider, provider_id),
+    INDEX idx_email_verification (email_verification_token),
+    INDEX idx_password_reset (password_reset_token),
+    INDEX idx_created_at (created_at)
+);
+```
+
+---
+
+## database/migrations/002_create_sessions_table.sql
+
+```sql
+-- MySQL migration for sessions table
+-- Run this migration second
+
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id VARCHAR(128) PRIMARY KEY,
+    user_id INT,
+    expires DATETIME NOT NULL,
+    data TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires (expires)
+);
+```
+
+---
+
+## database/migrations/003_create_refresh_tokens_table.sql
+
+```sql
+-- MySQL migration for refresh tokens table
+-- Run this migration third
+
+CREATE TABLE IF NOT EXISTS refresh_tokens (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at DATETIME NOT NULL,
+    is_revoked BOOLEAN DEFAULT FALSE,
+    replaced_by_token VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    
+    -- Indexes
+    INDEX idx_user_id (user_id),
+    INDEX idx_token (token),
+    INDEX idx_expires_at (expires_at),
+    INDEX idx_is_revoked (is_revoked)
+);
+```
+
+---
+
+## database/seeders/users_seeder.sql
+
+```sql
+-- Seed data for users table
+-- Default admin user (password: admin123)
+
+INSERT INTO users (
+    name, 
+    email, 
+    password, 
+    role, 
+    email_verified, 
+    is_active
+) VALUES (
+    'Admin User',
+    'admin@example.com',
+    '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewgYGZLWgUON3ZWO', -- bcrypt hash of 'admin123'
+    'admin',
+    TRUE,
+    TRUE
+);
+
+-- Default regular user (password: user123)
+INSERT INTO users (
+    name, 
+    email, 
+    password, 
+    role, 
+    email_verified, 
+    is_active
+) VALUES (
+    'Demo User',
+    'user@example.com',
+    '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', -- bcrypt hash of 'user123'
+    'user',
+    TRUE,
+    TRUE
+);
+```
+
+---
+
+## database/seeders/default_data.sql
+
+```sql
+-- Additional seed data for the application
+
+-- Insert sample data for testing
+INSERT INTO users (name, email, password, role, email_verified, is_active, bio) VALUES
+('John Doe', 'john@example.com', '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', TRUE, TRUE, 'Software developer passionate about full-stack development'),
+('Jane Smith', 'jane@example.com', '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', TRUE, TRUE, 'UI/UX designer with a love for creating beautiful interfaces'),
+('Bob Johnson', 'bob@example.com', '$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'user', FALSE, TRUE, 'DevOps engineer focused on cloud infrastructure');
+
+-- Note: All sample passwords are 'user123' for testing purposes
+-- In production, users should set their own secure passwords
+```
+
+---
+
+## database/init.sql
+
+```sql
+-- Database initialization script
+-- Run this script to set up the database
+
+-- Create database
+CREATE DATABASE IF NOT EXISTS fullstack_app;
+USE fullstack_app;
+
+-- Source all migration files
+SOURCE 001_create_users_table.sql;
+SOURCE 002_create_sessions_table.sql;
+SOURCE 003_create_refresh_tokens_table.sql;
+
+-- Source seed data
+SOURCE seeders/users_seeder.sql;
+SOURCE seeders/default_data.sql;
+
+-- Create database user (optional)
+-- CREATE USER 'app_user'@'localhost' IDENTIFIED BY 'secure_password';
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON fullstack_app.* TO 'app_user'@'localhost';
+-- FLUSH PRIVILEGES;
+
+-- Display success message
+SELECT 'Database initialization completed successfully!' AS message;
+```
+
+---
