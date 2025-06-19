@@ -9434,6 +9434,7 @@ npm run test:e2e
 4. Push to branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
+
 ## 📝 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
@@ -9443,3 +9444,304 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Common Issues
 
 1. **Port already in use**
+   ```bash
+   # Kill process using port 3000 (frontend)
+   sudo lsof -t -i tcp:3000 | xargs kill -9
+   
+   # Kill process using port 5000 (backend)
+   sudo lsof -t -i tcp:5000 | xargs kill -9
+   
+   # Or change ports in .env file
+   REACT_APP_PORT=3001
+   SERVER_PORT=5001
+   ```
+
+2. **Database connection errors**
+   ```bash
+   # MongoDB connection issues
+   - Check if MongoDB is running: sudo systemctl status mongod
+   - Verify connection string in .env
+   - Ensure database exists: use fullstack_app
+   
+   # MySQL connection issues
+   - Check MySQL service: sudo systemctl status mysql
+   - Verify credentials in .env
+   - Create database: CREATE DATABASE fullstack_app;
+   ```
+
+3. **JWT Token errors**
+   ```bash
+   # Clear browser localStorage/cookies
+   localStorage.clear();
+   
+   # Regenerate JWT secrets
+   JWT_SECRET=your_new_strong_secret_key_here
+   JWT_REFRESH_SECRET=your_new_refresh_secret_key_here
+   ```
+
+4. **Google OAuth not working**
+   ```bash
+   # Check Google Console settings
+   - Verify redirect URIs: http://localhost:3000/auth/google/callback
+   - Ensure OAuth credentials are correct in .env
+   - Check domain verification
+   ```
+
+5. **CORS errors**
+   ```bash
+   # Update cors configuration in server/app.js
+   app.use(cors({
+     origin: process.env.CLIENT_URL || 'http://localhost:3000',
+     credentials: true
+   }));
+   ```
+
+6. **Package installation issues**
+   ```bash
+   # Clear npm cache
+   npm cache clean --force
+   
+   # Delete node_modules and reinstall
+   rm -rf node_modules package-lock.json
+   npm install
+   
+   # Use specific Node version
+   nvm use 18.16.0
+   ```
+
+### Environment Variables Issues
+
+1. **Missing .env file**
+   ```bash
+   cp .env.example .env
+   # Fill in all required variables
+   ```
+
+2. **Invalid environment variables**
+   ```bash
+   # Check required variables are set
+   echo $JWT_SECRET
+   echo $MONGODB_URI
+   echo $MYSQL_HOST
+   ```
+
+### Development Issues
+
+1. **Hot reload not working**
+   ```bash
+   # Frontend
+   echo "FAST_REFRESH=false" >> .env
+   
+   # Backend - use nodemon
+   npm install -g nodemon
+   nodemon server.js
+   ```
+
+2. **Build errors**
+   ```bash
+   # Frontend build
+   npm run build
+   
+   # Check for TypeScript errors
+   npm run type-check
+   
+   # Backend production
+   NODE_ENV=production npm start
+   ```
+
+### Performance Issues
+
+1. **Slow API responses**
+   ```bash
+   # Add database indexes
+   db.users.createIndex({ email: 1 })
+   
+   # Enable query logging
+   DEBUG=app:* npm start
+   ```
+
+2. **Memory leaks**
+   ```bash
+   # Monitor memory usage
+   node --inspect server.js
+   
+   # Use PM2 for production
+   pm2 start server.js --name "fullstack-app"
+   ```
+
+## 🔧 Quick Fixes
+
+### Reset Application State
+```bash
+# Full reset script
+#!/bin/bash
+echo "Resetting FullStack App..."
+
+# Stop all processes
+pkill -f "node"
+pkill -f "react-scripts"
+
+# Clear databases
+mongo fullstack_app --eval "db.dropDatabase()"
+mysql -u root -p -e "DROP DATABASE IF EXISTS fullstack_app; CREATE DATABASE fullstack_app;"
+
+# Clear caches
+rm -rf client/node_modules server/node_modules
+rm -rf client/build
+npm cache clean --force
+
+# Reinstall dependencies
+cd client && npm install
+cd ../server && npm install
+
+echo "Reset complete! Run 'npm run dev' to start."
+```
+
+### Health Check Script
+```bash
+#!/bin/bash
+echo "Health Check - FullStack App"
+
+# Check ports
+echo "Checking ports..."
+lsof -i :3000 && echo "✅ Frontend running" || echo "❌ Frontend not running"
+lsof -i :5000 && echo "✅ Backend running" || echo "❌ Backend not running"
+
+# Check databases
+echo "Checking databases..."
+mongo --eval "db.runCommand('ping')" > /dev/null && echo "✅ MongoDB connected" || echo "❌ MongoDB not connected"
+mysql -u root -p -e "SELECT 1" > /dev/null && echo "✅ MySQL connected" || echo "❌ MySQL not connected"
+
+# Check environment
+echo "Checking environment..."
+[ -f .env ] && echo "✅ .env file exists" || echo "❌ .env file missing"
+[ -n "$JWT_SECRET" ] && echo "✅ JWT_SECRET set" || echo "❌ JWT_SECRET missing"
+
+echo "Health check complete!"
+```
+
+## 📞 Support
+
+### Getting Help
+
+1. **Check the logs**
+   ```bash
+   # Backend logs
+   tail -f server/logs/app.log
+   
+   # Frontend console
+   Open browser DevTools → Console
+   ```
+
+2. **Community Support**
+   - Create an issue on GitHub
+   - Check existing issues and discussions
+   - Provide error logs and environment details
+
+3. **Documentation**
+   - [`docs/SETUP.md`](docs/SETUP.md) - Setup instructions
+   - [`docs/API.md`](docs/API.md) - API documentation
+   - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) - Deployment guide
+
+### Reporting Bugs
+
+When reporting bugs, please include:
+- Operating system and version
+- Node.js version (`node --version`)
+- npm version (`npm --version`)
+- Browser version (for frontend issues)
+- Complete error messages
+- Steps to reproduce
+
+### Feature Requests
+
+For feature requests:
+- Describe the feature clearly
+- Explain the use case
+- Provide examples if possible
+- Check if similar features exist
+
+## 🚀 Performance Tips
+
+### Frontend Optimization
+```javascript
+// Lazy loading components
+const Dashboard = React.lazy(() => import('./components/Dashboard/Dashboard'));
+
+// Memoization for expensive operations
+const memoizedValue = useMemo(() => computeExpensiveValue(a, b), [a, b]);
+
+// Virtual scrolling for large lists
+import { FixedSizeList as List } from 'react-window';
+```
+
+### Backend Optimization
+```javascript
+// Database connection pooling
+mongoose.connect(uri, {
+  maxPoolSize: 10,
+  bufferMaxEntries: 0
+});
+
+// Caching with Redis
+const redis = require('redis');
+const client = redis.createClient();
+
+// Compression middleware
+app.use(compression());
+```
+
+## 🔒 Security Best Practices
+
+### Production Security Checklist
+- [ ] Change all default passwords
+- [ ] Use strong JWT secrets
+- [ ] Enable HTTPS only
+- [ ] Configure proper CORS
+- [ ] Set up rate limiting
+- [ ] Enable security headers
+- [ ] Validate all inputs
+- [ ] Use parameterized queries
+- [ ] Implement proper logging
+- [ ] Regular security updates
+
+### Monitoring & Logging
+```javascript
+// Production logging
+const winston = require('winston');
+const logger = winston.createLogger({
+  level: 'info',
+  format: winston.format.json(),
+  transports: [
+    new winston.transports.File({ filename: 'error.log', level: 'error' }),
+    new winston.transports.File({ filename: 'combined.log' })
+  ]
+});
+```
+
+---
+
+## 🎉 Congratulations!
+
+You now have a complete full-stack web application with:
+- ✅ Modern React frontend with Redux
+- ✅ Secure Node.js backend with Express
+- ✅ Multiple database support (MongoDB & MySQL)
+- ✅ JWT and OAuth authentication
+- ✅ Comprehensive security measures
+- ✅ Production-ready deployment options
+
+### Next Steps
+1. Customize the styling and branding
+2. Add your specific business logic
+3. Implement additional features
+4. Deploy to production
+5. Set up monitoring and analytics
+
+### Happy Coding! 🚀
+
+Remember to star ⭐ the repository if you find it helpful!
+
+---
+
+*Built with ❤️ using modern web technologies*
