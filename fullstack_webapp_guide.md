@@ -5622,3 +5622,470 @@ module.exports = new UserService();
 
 ---
 
+## server/utils/encryption.js
+
+```javascript
+const bcrypt = require('bcrypt');
+const crypto = require('crypto');
+
+// ES6+ class for encryption utilities
+class EncryptionUtils {
+    // Static method for password hashing with salt (ES6+ static methods)
+    static async hashPassword(password, saltRounds = 12) {
+        try {
+            // Generate salt and hash password (modern approach vs legacy callback)
+            const salt = await bcrypt.genSalt(saltRounds);
+            const hashedPassword = await bcrypt.hash(password, salt);
+            return hashedPassword;
+        } catch (error) {
+            throw new Error('Password hashing failed: ' + error.message);
+        }
+    }
+
+    // Compare password with hash (ES6+ async/await vs legacy callbacks)
+    static async comparePassword(password, hashedPassword) {
+        try {
+            return await bcrypt.compare(password, hashedPassword);
+        } catch (error) {
+            throw new Error('Password comparison failed: ' + error.message);
+        }
+    }
+
+    // Generate random tokens using crypto module
+    static generateRandomToken(length = 32) {
+        return crypto.randomBytes(length).toString('hex');
+    }
+
+    // Generate secure random string for sessions
+    static generateSessionId() {
+        return crypto.randomBytes(16).toString('hex');
+    }
+
+    // AES encryption for sensitive data
+    static encryptData(data, secretKey) {
+        const algorithm = 'aes-256-cbc';
+        const key = crypto.scryptSync(secretKey, 'salt', 32);
+        const iv = crypto.randomBytes(16);
+        
+        const cipher = crypto.createCipher(algorithm, key);
+        cipher.setAADTag(iv);
+        
+        let encrypted = cipher.update(data, 'utf8', 'hex');
+        encrypted += cipher.final('hex');
+        
+        return {
+            encrypted,
+            iv: iv.toString('hex')
+        };
+    }
+
+    // AES decryption for sensitive data
+    static decryptData(encryptedData, secretKey, iv) {
+        const algorithm = 'aes-256-cbc';
+        const key = crypto.scryptSync(secretKey, 'salt', 32);
+        
+        const decipher = crypto.createDecipher(algorithm, key);
+        decipher.setAADTag(Buffer.from(iv, 'hex'));
+        
+        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        
+        return decrypted;
+    }
+}
+
+module.exports = EncryptionUtils;
+```
+
+---
+
+## server/utils/validation.js
+
+```javascript
+const validator = require('validator');
+
+// ES6+ validation utilities with modern regex patterns
+class ValidationUtils {
+    // Email validation (ES6+ static methods)
+    static isValidEmail(email) {
+        return validator.isEmail(email) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+    }
+
+    // Password strength validation
+    static isStrongPassword(password) {
+        // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special char
+        const strongPasswordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+        return strongPasswordRegex.test(password);
+    }
+
+    // Name validation (no numbers or special characters)
+    static isValidName(name) {
+        const nameRegex = /^[a-zA-Z\s]{2,50}$/;
+        return nameRegex.test(name.trim());
+    }
+
+    // Phone number validation (international format)
+    static isValidPhone(phone) {
+        const phoneRegex = /^\+?[\d\s\-\(\)]{10,15}$/;
+        return phoneRegex.test(phone);
+    }
+
+    // Sanitize input to prevent XSS (ES6+ arrow functions)
+    static sanitizeInput = (input) => {
+        if (typeof input !== 'string') return input;
+        
+        // Remove HTML tags and escape special characters
+        return validator.escape(validator.stripLow(input.trim()));
+    }
+
+    // Validate and sanitize user registration data
+    static validateRegistrationData(data) {
+        const errors = {};
+        const { name, email, password, confirmPassword } = data;
+
+        // Name validation
+        if (!name || !this.isValidName(name)) {
+            errors.name = 'Name must be 2-50 characters and contain only letters';
+        }
+
+        // Email validation
+        if (!email || !this.isValidEmail(email)) {
+            errors.email = 'Please provide a valid email address';
+        }
+
+        // Password validation
+        if (!password || !this.isStrongPassword(password)) {
+            errors.password = 'Password must be at least 8 characters with uppercase, lowercase, number, and special character';
+        }
+
+        // Confirm password validation
+        if (password !== confirmPassword) {
+            errors.confirmPassword = 'Passwords do not match';
+        }
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors,
+            sanitizedData: {
+                name: this.sanitizeInput(name),
+                email: this.sanitizeInput(email?.toLowerCase()),
+                password // Don't sanitize password as it might affect special characters
+            }
+        };
+    }
+
+    // Validate login data
+    static validateLoginData(data) {
+        const errors = {};
+        const { email, password } = data;
+
+        if (!email || !this.isValidEmail(email)) {
+            errors.email = 'Please provide a valid email address';
+        }
+
+        if (!password || password.length < 6) {
+            errors.password = 'Password is required';
+        }
+
+        return {
+            isValid: Object.keys(errors).length === 0,
+            errors,
+            sanitizedData: {
+                email: this.sanitizeInput(email?.toLowerCase()),
+                password
+            }
+        };
+    }
+
+    // Validate MongoDB ObjectId
+    static isValidObjectId(id) {
+        return /^[0-9a-fA-F]{24}$/.test(id);
+    }
+
+    // Validate JWT token format
+    static isValidJWTFormat(token) {
+        const jwtRegex = /^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/;
+        return jwtRegex.test(token);
+    }
+}
+
+module.exports = ValidationUtils;
+```
+
+---
+
+## server/utils/logger.js
+
+```javascript
+const winston = require('winston');
+const path = require('path');
+
+// ES6+ destructuring for winston formats
+const { combine, timestamp, printf, colorize, errors } = winston.format;
+
+// Custom log format using ES6+ template literals
+const logFormat = printf(({ level, message, timestamp, stack }) => {
+    return `${timestamp} [${level}]: ${stack || message}`;
+});
+
+// Create logger instance with ES6+ configuration
+const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: combine(
+        timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+        errors({ stack: true }), // Log stack traces for errors
+        logFormat
+    ),
+    defaultMeta: { service: 'fullstack-app' },
+    transports: [
+        // Error log file
+        new winston.transports.File({
+            filename: path.join(__dirname, '../logs/error.log'),
+            level: 'error',
+            maxsize: 5242880, // 5MB
+            maxFiles: 5
+        }),
+        
+        // Combined log file
+        new winston.transports.File({
+            filename: path.join(__dirname, '../logs/combined.log'),
+            maxsize: 5242880, // 5MB
+            maxFiles: 5
+        })
+    ]
+});
+
+// Add console transport for development (ES6+ conditional)
+if (process.env.NODE_ENV !== 'production') {
+    logger.add(new winston.transports.Console({
+        format: combine(
+            colorize(),
+            timestamp({ format: 'HH:mm:ss' }),
+            logFormat
+        )
+    }));
+}
+
+// ES6+ class for logging utilities
+class LoggerUtils {
+    // Static methods for different log levels
+    static info(message, meta = {}) {
+        logger.info(message, meta);
+    }
+
+    static error(message, error = null, meta = {}) {
+        logger.error(message, { error: error?.stack || error, ...meta });
+    }
+
+    static warn(message, meta = {}) {
+        logger.warn(message, meta);
+    }
+
+    static debug(message, meta = {}) {
+        logger.debug(message, meta);
+    }
+
+    // Log HTTP requests (middleware helper)
+    static logRequest(req, res, responseTime) {
+        const logData = {
+            method: req.method,
+            url: req.originalUrl,
+            statusCode: res.statusCode,
+            responseTime: `${responseTime}ms`,
+            userAgent: req.get('User-Agent'),
+            ip: req.ip,
+            userId: req.user?.id || 'anonymous'
+        };
+
+        if (res.statusCode >= 400) {
+            this.error('HTTP Request Failed', null, logData);
+        } else {
+            this.info('HTTP Request', logData);
+        }
+    }
+
+    // Log authentication events
+    static logAuth(event, userId, details = {}) {
+        this.info(`Auth Event: ${event}`, {
+            userId,
+            event,
+            ...details
+        });
+    }
+
+    // Log database operations
+    static logDatabase(operation, collection, details = {}) {
+        this.debug(`DB Operation: ${operation}`, {
+            operation,
+            collection,
+            ...details
+        });
+    }
+}
+
+module.exports = { logger, LoggerUtils };
+```
+
+---
+
+## server/utils/helpers.js
+
+```javascript
+const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
+
+// ES6+ helper utilities class
+class Helpers {
+    // Generate unique identifier using ES6+ static methods
+    static generateUniqueId() {
+        return crypto.randomBytes(16).toString('hex') + Date.now().toString(36);
+    }
+
+    // Format response object (ES6+ object shorthand)
+    static formatResponse(success, message, data = null, errors = null) {
+        return {
+            success,
+            message,
+            data,
+            errors,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    // Success response helper
+    static successResponse(message, data = null) {
+        return this.formatResponse(true, message, data);
+    }
+
+    // Error response helper
+    static errorResponse(message, errors = null) {
+        return this.formatResponse(false, message, null, errors);
+    }
+
+    // Pagination helper using ES6+ default parameters
+    static paginate(page = 1, limit = 10, total = 0) {
+        const offset = (page - 1) * limit;
+        const totalPages = Math.ceil(total / limit);
+        
+        return {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            offset,
+            total,
+            totalPages,
+            hasNext: page < totalPages,
+            hasPrev: page > 1
+        };
+    }
+
+    // Generate JWT tokens (ES6+ destructuring)
+    static generateTokens(payload) {
+        const accessToken = jwt.sign(
+            payload,
+            process.env.JWT_ACCESS_SECRET,
+            { expiresIn: process.env.JWT_ACCESS_EXPIRE || '15m' }
+        );
+
+        const refreshToken = jwt.sign(
+            payload,
+            process.env.JWT_REFRESH_SECRET,
+            { expiresIn: process.env.JWT_REFRESH_EXPIRE || '7d' }
+        );
+
+        return { accessToken, refreshToken };
+    }
+
+    // Verify JWT token
+    static verifyToken(token, secret) {
+        try {
+            return jwt.verify(token, secret);
+        } catch (error) {
+            throw new Error('Invalid token: ' + error.message);
+        }
+    }
+
+    // Generate random OTP
+    static generateOTP(length = 6) {
+        const digits = '0123456789';
+        let otp = '';
+        
+        for (let i = 0; i < length; i++) {
+            otp += digits[Math.floor(Math.random() * 10)];
+        }
+        
+        return otp;
+    }
+
+    // Calculate time difference in minutes
+    static getTimeDifferenceInMinutes(date1, date2 = new Date()) {
+        const diffInMs = Math.abs(date2 - date1);
+        return Math.floor(diffInMs / (1000 * 60));
+    }
+
+    // Deep clone object (ES6+ JSON methods)
+    static deepClone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    }
+
+    // Remove sensitive fields from user object
+    static sanitizeUser(user) {
+        const { password, refreshToken, __v, ...sanitizedUser } = user.toObject ? user.toObject() : user;
+        return sanitizedUser;
+    }
+
+    // Convert string to slug (URL-friendly)
+    static createSlug(str) {
+        return str
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '') // Remove special characters
+            .replace(/[\s_-]+/g, '-') // Replace spaces and underscores with hyphens
+            .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+    }
+
+    // Validate environment variables
+    static validateEnvVars(requiredVars) {
+        const missing = requiredVars.filter(varName => !process.env[varName]);
+        
+        if (missing.length > 0) {
+            throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+        }
+    }
+
+    // Generate secure random string
+    static generateSecureRandom(length = 32) {
+        return crypto.randomBytes(Math.ceil(length / 2))
+            .toString('hex')
+            .slice(0, length);
+    }
+
+    // Delay execution (for rate limiting, etc.)
+    static delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // Check if string is JSON
+    static isValidJSON(str) {
+        try {
+            JSON.parse(str);
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    // Format file size in human readable format
+    static formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+}
+
+module.exports = Helpers;
+```
+
